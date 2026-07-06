@@ -1,9 +1,8 @@
-# monkeyturnv-counter2 clean-v2
+# monkeyturnv-counter2
 
-monkeyturnv-counter2 用のクリーン版です。
+スマスロ モンキーターンV専用カウンター兼設定判別アプリ。
 
-アップロードするファイルはこの6個だけです。
-
+## 管理ファイル
 - index.html
 - app.js
 - style.css
@@ -11,4 +10,11 @@ monkeyturnv-counter2 用のクリーン版です。
 - service-worker.js
 - README.md
 
-古い v04 / v05 / v051 / v052 系のファイルは使いません。
+## 方針
+- 6ファイルのみで管理
+- 既存機能を削らずに修正
+- カードUI、折り畳み、起動時は全閉じ
+- 「濃厚」はアプリ内では確定扱い
+
+## GitHub Pages
+https://elf0911.github.io/monkeyturnv-counter2/

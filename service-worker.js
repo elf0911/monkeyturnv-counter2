@@ -1,3 +1,4 @@
-// 開発中はキャッシュ事故防止のため未使用。
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", event => event.waitUntil(self.clients.claim()));
+const CACHE='monkeyturnv-counter2-v1';
+const ASSETS=['./','index.html','app.js','style.css','manifest.json'];
+self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
