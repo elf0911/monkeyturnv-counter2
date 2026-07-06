@@ -1,6 +1,6 @@
-# monkeyturnv-counter clean-v1
+# monkeyturnv-counter2 clean-v2
 
-新しいリポジトリ用のクリーン版です。
+monkeyturnv-counter2 用のクリーン版です。
 
 アップロードするファイルはこの6個だけです。
 
@@ -10,3 +10,5 @@
 - manifest.json
 - service-worker.js
 - README.md
+
+古い v04 / v05 / v051 / v052 系のファイルは使いません。

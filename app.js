@@ -1,4 +1,4 @@
-const VERSION="clean-v1";
+const VERSION="clean-v2";
 const STORAGE_KEY="monkeyturnv-counter-clean-v1";
 const SETS=[1,2,4,5,6];
 
