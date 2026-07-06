@@ -10,3 +10,5 @@
 input[type=radio]{accent-color:var(--blue)}
 .confirmLine{font-size:14px;color:var(--sub);line-height:1.75}
 .confirmLine strong{color:var(--text)}
+.sectionLabel{padding:12px 14px 6px 28px;color:var(--sub);font-size:13px;font-weight:800;background:var(--panel)}
+.miniLabel{padding:10px 14px 2px 28px;color:var(--sub);font-size:13px;font-weight:800;background:var(--panel)}
