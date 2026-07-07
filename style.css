@@ -14,3 +14,13 @@ input[type=radio]{accent-color:var(--blue)}
 .sectionTitle{padding:14px 14px 6px 28px;color:var(--sub);font-size:13px;font-weight:800;border-top:1px solid var(--line)}
 .sectionTitle:first-child{border-top:0}
 .pub strong{color:var(--text)}
+
+/* Detail rows: 3-column text layout. Left/right are left-aligned, count is fixed-width right-aligned so 「回」 stays vertical. */
+.trirow{padding-right:12px}
+.tri{display:grid;grid-template-columns:minmax(0,1fr) 4.8em minmax(5.5em,auto);gap:8px;align-items:center}
+.triName{min-width:0}
+.triCount{font-size:16px;font-weight:780;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.triNote{font-size:13px;color:var(--sub);white-space:nowrap;text-align:left}
+.subBtns{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.subextra{margin-top:4px;text-align:right}
+@media(max-width:390px){.tri{grid-template-columns:minmax(0,1fr) 4.4em minmax(4.6em,auto);gap:6px}.triNote{font-size:12px}.subrow{padding-left:18px}.name{font-size:15px}}
