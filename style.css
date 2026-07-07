@@ -24,3 +24,15 @@ input[type=radio]{accent-color:var(--blue)}
 .subBtns{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
 .subextra{margin-top:4px;text-align:right}
 @media(max-width:390px){.tri{grid-template-columns:minmax(0,1fr) 4.4em minmax(4.6em,auto);gap:6px}.triNote{font-size:12px}.subrow{padding-left:18px}.name{font-size:15px}}
+
+/* Setting detail rows: 3-column layout (left/right left-aligned, count right-aligned). */
+.pubRows{display:grid;gap:0;margin-top:2px}
+.pubTri{display:grid;grid-template-columns:minmax(0,1fr) 4.4em minmax(5.2em,auto);gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.pubTri:last-child{border-bottom:0}
+.pubName{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;color:var(--sub)}
+.pubCount{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums;color:var(--text);font-weight:700}
+.pubNote{white-space:nowrap;text-align:left;color:var(--sub);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+.pubRatio{margin-top:8px;color:var(--sub);font-size:13px}
+.pubSectionTitle{margin:12px 0 4px;color:var(--text);font-weight:800;font-size:13px}
+.pubSectionTitle:first-child{margin-top:0}
+@media(max-width:390px){.pubTri{grid-template-columns:minmax(0,1fr) 3.7em minmax(4.4em,auto);gap:6px}.pubName,.pubCount{font-size:13px}.pubNote{font-size:12px}}

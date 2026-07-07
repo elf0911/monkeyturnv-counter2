@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-order-layout";
+const VERSION="stage1-ui-order-layout-v2";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -86,10 +86,23 @@ function bars(){let p=probs(),v=Object.values(p),mx=Math.max(...v),mn=Math.min(.
 function signals(){let l=[];if(S.data.trophyRainbow)l.push("トロフィー 虹（設定6確定）");if(S.data.ticketRainbow)l.push("舟券 虹（設定6確定）");if(S.data.over666)l.push("666枚OVER（設定6確定）");if(S.data.endOmedeto)l.push("澄『おめでとう！』（設定6確定）");if(S.data.trophyKerot)l.push("トロフィー ケロット柄（設定5以上）");if(S.data.over803)l.push("803枚OVER（設定5以上）");if(S.data.roundBoatKerot)l.push("ボートケロット（設定5以上）");if(S.data.roundAoshimaHatano)l.push("青島＆波多野（設定5以上）");if(S.data.endKitakita)l.push("青島『きたきたきたぁー！』（設定5以上）");if(S.data.trophyGold)l.push("トロフィー 金（設定4以上）");if(S.data.ticketGold)l.push("舟券 金（設定4以上）");if(S.data.voiceTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.endTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.over456)l.push("456枚OVER（設定4以上）");if(S.data.trophyBronze)l.push("トロフィー 銅（設定2以上）");if(S.data.ticketSilver)l.push("舟券 銀（偶数濃厚）");if(S.data.voiceOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");if(S.data.endOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");$("signals").classList.toggle("on",l.length>0);$("signals").innerHTML=l.length?`<div class="blockTitle">確定・否定</div>${l.map(x=>`<div class="signal">${x}</div>`).join("")}`:""}
 function jitems(){let keys=["atHit","fiveCoin",...GROUPS].filter(k=>S.visible[k]&&k!=="rare");$("judgeItems").innerHTML=keys.map(jitem).join("");$("judgeItems").querySelectorAll("[data-use]").forEach(c=>c.onchange=()=>{S.judgeUse[c.dataset.use]=c.checked;save();render()});$("judgeItems").querySelectorAll("[data-open]").forEach(el=>el.onclick=e=>{if(e.target.tagName==="INPUT")return;el.parentElement.classList.toggle("open")})}
 function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",pub="";if(k==="atHit"||k==="fiveCoin"){let inf=PUB[k],c=S.data[k]||0,den=(k==="fiveCoin"?S.data[S.fiveCoinBase]:S.data.normalGames)||0,rn=c&&den?den/c:null;title=inf.label;main=rn?`1/${trim(rn,1)}`:"-";near=rn?`（${nearest(rn,inf.values)}）`:"（-）";pub=Object.entries(inf.values).map(([s,v])=>`設定${s}　1/${v}`).join("<br>")}else{title=GDEF[k].label;main=gtotal(k)?`合計 ${gtotal(k)}回`:"-";pub=gtext(k)}let imp=S.showImpact?`<div class="starImpact">影響度 ${impactStars(k)}</div>`:"";return `<div class="jitem"><div class="jsum" data-open="${k}"><input type="checkbox" data-use="${k}" ${checked}><div><div class="jtitle">${title}</div><div class="jrate">${main}</div><div class="near">${near}</div>${imp}</div><div class="chev">▼</div></div><div class="pub">${pub}</div></div>`}
-function gtext(g){if(g==="direct")return directPublicText();if(g==="chargeVoice")return `波多野比率　${S.data.voiceCalm||0}：${S.data.voiceSign||0}<br>波多野「落ち着くんだ…」<br>波多野「この気配は！？」<br><span class="red">榎木「おつかれ」</span>（偶数濃厚）<br><span class="red">榎木「これが艇王と…」</span>（設定4以上）`;if(g==="atSignals")return sectionPublicText(g);if(g==="endingVoice")return GDEF.endingVoice.children.map(([k,l,c])=>`<span class="${c||""}">${l}</span>　${S.data[k]||0}回（${NOTE[k]}）`).join("<br>");if(g==="chargeItem")return pairPublicText(g);let d=GDEF[g];if(d.paired)return pairPublicText(g);return flatChildren(d).map(([k,l,c])=>`${c?`<span class="${c}">${l}</span>`:l}　${S.data[k]||0}回${NOTE[k]?`（${NOTE[k]}）`:""}`).join("<br>")}
-function sectionPublicText(g){return GDEF[g].sections.map(sec=>`<strong>${sec.title}</strong><br>`+sec.children.map(([k,l])=>`${l}　${S.data[k]||0}回（${NOTE[k]}）`).join("<br>")).join("<br><br>")}
-function directPublicText(){return [`ボート　${S.data.directBoat||0}回<br>設定1　-<br>設定2　-<br>設定4　0.4%<br>設定5　2.0%<br>設定6　3.1%`,`弱チェリー　${S.data.directWeakCherry||0}回<br>設定1　-<br>設定2　-<br>設定4　0.4%<br>設定5　2.0%<br>設定6　3.1%`,`弱チャンス目　${S.data.directWeakChance||0}回<br>設定1　-<br>設定2　-<br>設定4　0.8%<br>設定5　2.0%<br>設定6　3.1%`,`強チェリー　${S.data.directStrongCherry||0}回<br>設定1　0.4%<br>設定2　1.2%<br>設定4　2.0%<br>設定5　3.9%<br>設定6　6.3%`,`強チャンス目　${S.data.directStrongChance||0}回<br>設定1　0.4%<br>設定2　1.2%<br>設定4　2.0%<br>設定5　3.9%<br>設定6　6.3%`].join("<br><br>")}
-function pairPublicText(g){let d=GDEF[g];return d.children.map(([b,l])=>`${l}　${S.data[b+"Item"]||0}/${S.data[b+"Hit"]||0}　${S.data[b+"Hit"]?trim((S.data[b+"Item"]||0)/(S.data[b+"Hit"]||1)*100,1)+"%":"-"}`).join("<br>")}
+function detailLine(l,cnt,note,cls=""){return `<div class="pubTri"><div class="pubName ${cls}">${l}</div><div class="pubCount">${cnt}回</div><div class="pubNote">${note||""}</div></div>`}
+function detailRows(rows){return `<div class="pubRows">${rows.join("")}</div>`}
+function gtext(g){if(g==="direct")return directPublicText();if(g==="chargeVoice")return detailRows([
+ detailLine("波多野「落ち着くんだ…」",S.data.voiceCalm||0,"比率対象"),
+ detailLine("波多野「この気配は！？」",S.data.voiceSign||0,"比率対象"),
+ detailLine("榎木「おつかれ」",S.data.voiceOtsukare||0,"偶数濃厚","red"),
+ detailLine("榎木「これが艇王と…」",S.data.voiceTeio||0,"設定4以上","red")
+])+`<div class="pubRatio">波多野比率　${S.data.voiceCalm||0}：${S.data.voiceSign||0}</div>`;if(g==="atSignals")return sectionPublicText(g);if(g==="endingVoice")return detailRows(GDEF.endingVoice.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));if(g==="chargeItem")return pairPublicText(g);let d=GDEF[g];if(d.paired)return pairPublicText(g);return detailRows(flatChildren(d).map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))}
+function sectionPublicText(g){return GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("")}
+function directPublicText(){return detailRows([
+ detailLine("ボート",S.data.directBoat||0,"設定4 0.4% / 5 2.0% / 6 3.1%"),
+ detailLine("弱チェリー",S.data.directWeakCherry||0,"設定4 0.4% / 5 2.0% / 6 3.1%"),
+ detailLine("弱チャンス目",S.data.directWeakChance||0,"設定4 0.8% / 5 2.0% / 6 3.1%"),
+ detailLine("強チェリー",S.data.directStrongCherry||0,"設定1 0.4% / 2 1.2% / 4 2.0% / 5 3.9% / 6 6.3%"),
+ detailLine("強チャンス目",S.data.directStrongChance||0,"設定1 0.4% / 2 1.2% / 4 2.0% / 5 3.9% / 6 6.3%")
+])}
+function pairPublicText(g){let d=GDEF[g];return detailRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="pubTri"><div class="pubName">${l}</div><div class="pubCount">${i}/${h}</div><div class="pubNote">${p}</div></div>`}))}
 function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function impactStars(k){let n={atHit:5,fiveCoin:4,direct:4,chargeVoice:3,atSignals:5,endingVoice:5,trophy:5,ticket:5,medal:2,rival:2,chargeItem:2}[k]||1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
