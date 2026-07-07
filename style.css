@@ -42,3 +42,14 @@ input[type=radio]{accent-color:var(--blue)}
 .pubFoldBody{padding:8px 0 0 1.2em;font-size:13px;line-height:1.8}
 .publicList{display:grid;gap:2px}
 @media(max-width:390px){.pub{padding-left:36px}.pubTri{grid-template-columns:minmax(0,1fr) minmax(4.8em,.72fr) 3.3em;gap:6px}.pubName,.pubCount{font-size:13px}.pubNote{font-size:12px}}
+
+
+/* Public value tables */
+.pubTableWrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:10px;margin-top:4px}
+.pubTable{width:100%;min-width:430px;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.pubTable th,.pubTable td{padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.pubTable th{color:var(--sub);font-weight:800;background:var(--btn);text-align:right}
+.pubTable th:first-child,.pubTable td.left{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1}
+.pubTable td.num{text-align:right;color:var(--text)}
+.pubTable tr:last-child td{border-bottom:0}
+.pubFoldBody .pubTableWrap{margin-left:-1.2em;width:calc(100% + 1.2em)}

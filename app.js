@@ -1,13 +1,13 @@
-const VERSION="stage1-ui-judge-layout-v5";
+const VERSION="stage1-ui-judge-layout-v6";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
 const DISPLAY=[
  ["games","総ゲーム数",false],["normalGames","通常ゲーム数",false],["atGames","ATゲーム数",false],["atHit","AT初当たり",false],
  ["fiveCoin","5枚役",false],["rare","レア小役",false],["chargeVoice","激走チャージ後セリフ",false],
- ["medal","SGメダル",false],["trophy","トロフィー",false],["ticket","舟券",false],
+ ["medal","SGメダル",false],["trophy","トロフィー",false],["immediateYushutsu","即優出",false],["ticket","舟券",false],
  ["direct","AT直撃",false],["chargeItem","激走チャージ中アイテム",false],["rival","ライバルモード",false],
- ["immediateYushutsu","即優出",false],["atSignals","AT中示唆",false],["endingVoice","エンディング中サブ液晶",false]
+ ["atSignals","AT中示唆",false],["endingVoice","エンディング中サブ液晶",false]
 ];
 const SINGLE={
  games:{label:"総ゲーム数",unit:"G",game:true},normalGames:{label:"通常ゲーム数",unit:"G",game:true},atGames:{label:"ATゲーム数",unit:"G",game:true},
@@ -61,7 +61,7 @@ function bind(){
 function screen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));$(id).classList.add("active");render()}
 function render(){home();settings();judge()}
 function home(){let h="";for(const [k] of DISPLAY){if(!S.visible[k])continue;if(SINGLE[k])h+=row(k,SINGLE[k]);else h+=group(k)}$("homeList").innerHTML=h;dyn($("homeList"))}
-function row(k,it,sub=false){let v=S.data[k]||0,denomKey=(k==="fiveCoin"?S.fiveCoinBase:it.denom),r="";if(k==="immediateYushutsu")r=pct(v,Math.max(0,(S.data.atHit||0)-1));else if(denomKey)r=rate(v,S.data[denomKey]);let cls=sub?"subrow":"row";let btn=it.game?`<button class="btn gamebtn" data-c="${k}" data-d="${S.step.plus}">＋${S.step.plus}</button><button class="btn gamebtn" data-c="${k}" data-d="-${S.step.minus}">－${S.step.minus}</button>`:`<button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button>`;return `<div class="${cls}" data-hold="${k}"><div class="top"><div class="name">${it.label}</div><div class="value">${v}${it.unit||"回"}</div>${btn}</div>${r?`<div class="rate">${r}</div>`:""}</div>`}
+function row(k,it,sub=false){let v=S.data[k]||0,denomKey=(k==="fiveCoin"?S.fiveCoinBase:it.denom),r="";if(k==="immediateYushutsu"){let den=Math.max(0,(S.data.atHit||0)-1);r=den?`${trim(v/den*100,1)}%`:"-";}else if(denomKey)r=rate(v,S.data[denomKey]);let cls=sub?"subrow":"row";let btn=it.game?`<button class="btn gamebtn" data-c="${k}" data-d="${S.step.plus}">＋${S.step.plus}</button><button class="btn gamebtn" data-c="${k}" data-d="-${S.step.minus}">－${S.step.minus}</button>`:`<button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button>`;return `<div class="${cls}" data-hold="${k}"><div class="top"><div class="name">${it.label}</div><div class="value">${v}${it.unit||"回"}</div>${btn}</div>${r?`<div class="rate">${r}</div>`:""}</div>`}
 function group(g){let d=GDEF[g],open=S.open[g]?"open":"",total=gtotal(g),body="";if(d.sections){body=d.sections.map(sec=>`<div class="sectionTitle">${sec.title}</div>`+sec.children.map(ch=>childRow(g,ch)).join("")).join("")}else if(d.paired){body=d.children.map(([k,l])=>paired(k,l)).join("")}else{body=d.children.map(ch=>childRow(g,ch)).join("")}return `<div class="group ${open}"><button class="ghead" data-t="${g}"><span class="chev">${S.open[g]?"▼":"▶"}</span><span class="groupTitle">${d.label}</span><span class="gtotal">${total}回</span></button><div class="gbody">${body}</div></div>`}
 function childRow(g,[k,l,c]){let sub=info(g,k),note=NOTE[k],cc=c?` ${c}`:"",extra=sub?`<div class="subnote subextra">${sub}</div>`:"";return `<div class="subrow trirow" data-hold="${k}"><div class="tri"><div class="triName name${cc}">${l}</div><div class="triCount">${S.data[k]||0}回</div><div class="triNote">${note||""}</div></div><div class="subBtns"><button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button></div>${extra}</div>`}
 function paired(k,l){let h=S.data[k+"Hit"]||0,i=S.data[k+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="subrow"><div class="name">${l}</div><div class="top" data-hold="${k}Hit"><div class="name subnote">成立</div><div class="value">${h}回</div><button class="btn" data-c="${k}Hit" data-d="1">＋</button><button class="btn" data-c="${k}Hit" data-d="-1">－</button></div><div class="top" data-hold="${k}Item"><div class="name subnote">獲得</div><div class="value">${i}回</div><button class="btn" data-c="${k}Item" data-d="1">＋</button><button class="btn" data-c="${k}Item" data-d="-1">－</button></div><div class="subnote">${p}</div></div>`}
@@ -91,8 +91,8 @@ function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",
   title=inf.label;let n=rn?nearest(rn,inf.values):"-";main=rn?`1/${trim(rn,1)}（${n}）`:"-";near="";
   pub=publicList(Object.entries(inf.values).map(([s,v])=>`設定${s}　1/${v}`));
  }else if(k==="immediateYushutsu"){
-  let inf=PUB[k],c=S.data[k]||0,den=Math.max(0,(S.data.atHit||0)-1),rv=c&&den?c/den*100:null;
-  title=inf.label;let n=rv?nearestPct(rv,inf.values):"-";main=rv?`${trim(rv,1)}%（${n}）`:"-";near=den?`分母：AT初当たり−1 = ${den}`:"分母：AT初当たり−1";
+  let inf=PUB[k],c=S.data[k]||0,den=Math.max(0,(S.data.atHit||0)-1),rv=den?c/den*100:null;
+  title=inf.label;let n=rv!==null?nearestPct(rv,inf.values):"-";main=rv!==null?`${trim(rv,1)}%（${n}）`:"-";near=den?`分母：AT初当たり−1 = ${den}`:"分母：AT初当たり−1";
   pub=publicList(Object.entries(inf.values).map(([s,v])=>`設定${s}　${v}%`));
  }else{
   title=GDEF[k].label;main=gtotal(k)?`${gtotal(k)}回`:"-";pub=gtext(k)
@@ -103,6 +103,7 @@ function detailLine(l,cnt,note,cls=""){return `<div class="pubTri"><div class="p
 function detailRows(rows){return `<div class="pubRows">${rows.join("")}</div>`}
 function pubFold(title,body){return `<details class="pubFold"><summary>${title}</summary><div class="pubFoldBody">${body}</div></details>`}
 function publicList(rows){return `<div class="publicList">${rows.map(r=>`<div>${r}</div>`).join("")}</div>`}
+function publicTable(rows){const heads=["項目","設定1","設定2","設定4","設定5","設定6"];return `<div class="pubTableWrap"><table class="pubTable"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"left":"num"}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
 function gtext(g){
  if(g==="direct")return directPublicText();
  if(g==="chargeVoice"){
@@ -113,19 +114,49 @@ function gtext(g){
    detailLine("榎木「おつかれ」",S.data.voiceOtsukare||0,"偶数濃厚","red"),
    detailLine("榎木「これが艇王と…」",S.data.voiceTeio||0,"設定4以上","red")
   ]);
-  let pv=publicList(["榎木「おつかれ」　設定2 0.75% / 設定4 0.75% / 設定6 1.25%","榎木「これが艇王と…」　設定4 0.25% / 設定5 0.25% / 設定6 0.25%"]);
+  let pv=publicTable([
+   ["榎木 おつかれ","-","0.75%","0.75%","-","1.25%"],
+   ["榎木 これが艇王と…","-","-","0.25%","0.25%","0.25%"]
+  ]);
   return ratio+rows+pubFold("公表値",pv)
  }
  if(g==="atSignals")return sectionPublicText(g);
  if(g==="endingVoice")return detailRows(GDEF.endingVoice.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))+pubFold("公表値",endingPublic());
  if(g==="chargeItem")return pairPublicText(g);
- if(g==="ticket"){let rows=detailRows(GDEF.ticket.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicList(["設定1　銀 - / 金 - / 虹 -","設定2　銀 0.5% / 金 - / 虹 -","設定4　銀 0.6% / 金 0.2% / 虹 -","設定5　銀 - / 金 0.5% / 虹 -","設定6　銀 0.6% / 金 0.3% / 虹 0.1%"]);return rows+pubFold("公表値",pv)}
- if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicList(["黒メダル出現率：設定1 1.25% / 設定2 1.5% / 設定4 4.0% / 設定5 4.5% / 設定6 4.5%","黒メダル後1回目 SGメダル：設定1 青50.0%・黄50.0% / 設定2 青45.0%・黄30.0% / 設定4 青37.5%・黄37.5% / 設定5 青25.0%・黄50.0% / 設定6 青37.5%・黄37.5%"]);return rows+pubFold("公表値",pv)}
- if(g==="trophy"){let rows=detailRows(GDEF.trophy.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicList(["黒メダル後1回目以外：設定2 銅5.0% / 設定4 銅3.4%・金4.4% / 設定5 銅3.4%・金3.6%・ケロット2.1% / 設定6 銅3.5%・金3.9%・ケロット1.6%・虹0.8%","黒メダル後1回目：設定2 銅25.0% / 設定4 銅12.5%・金12.5% / 設定5 銅10.0%・金11.25%・ケロット3.75% / 設定6 銅10.0%・金11.0%・ケロット3.0%・虹1.0%"]);return rows+pubFold("公表値",pv)}
+ if(g==="ticket"){let rows=detailRows(GDEF.ticket.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
+ ["銀","-","0.5%","0.6%","-","0.6%"],
+ ["金","-","-","0.2%","0.5%","0.3%"],
+ ["虹","-","-","-","-","0.1%"]
+]);return rows+pubFold("公表値",pv)}
+ if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
+ ["黒メダル","1.25%","1.5%","4.0%","4.5%","4.5%"],
+ ["黒後 青","50.0%","45.0%","37.5%","25.0%","37.5%"],
+ ["黒後 黄","50.0%","30.0%","37.5%","50.0%","37.5%"]
+]);return rows+pubFold("公表値",pv)}
+ if(g==="trophy"){let rows=detailRows(GDEF.trophy.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
+ ["銅 通常","-","5.0%","3.4%","3.4%","3.5%"],
+ ["金 通常","-","-","4.4%","3.6%","3.9%"],
+ ["ケロット 通常","-","-","-","2.1%","1.6%"],
+ ["虹 通常","-","-","-","-","0.8%"],
+ ["銅 黒後","-","25.0%","12.5%","10.0%","10.0%"],
+ ["金 黒後","-","-","12.5%","11.25%","11.0%"],
+ ["ケロット 黒後","-","-","-","3.75%","3.0%"],
+ ["虹 黒後","-","-","-","-","1.0%"]
+]);return rows+pubFold("公表値",pv)}
  let d=GDEF[g];if(d.paired)return pairPublicText(g);let rows=detailRows(flatChildren(d).map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));return rows
 }
-function endingPublic(){return publicList(["設定1　赤系なし","設定2　榎木（赤）2.5%","設定4　榎木（赤）2.5% / 榎木（紫）2.5%","設定5　榎木（紫）2.5% / 青島（紫）2.5%","設定6　榎木（赤）1.25% / 榎木（紫）1.25% / 青島（紫）1.25% / 澄（紫）1.25%"])}
-function sectionPublicText(g){let rows=GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("");let pv=publicList(["獲得枚数表示：456枚OVER 設定4以上 / 803枚OVER 設定5以上 / 666枚OVER 設定6","青島SG ドレス：設定1 20.0% / 設定2 25.0% / 設定4 35.0% / 設定5 37.5〜40.8% / 設定6 37.5〜40.5%","青島＆波多野：設定5 5.2% / 設定6 4.5%（継続ストックあり時）"]);return rows+pubFold("公表値",pv)}
+
+function endingPublic(){return publicTable([
+ ["榎木 おつかれ","-","2.5%","2.5%","-","1.25%"],
+ ["榎木 これが艇王と…","-","-","2.5%","2.5%","1.25%"],
+ ["青島 きたきた…","-","-","-","2.5%","1.25%"],
+ ["澄 おめでとう","-","-","-","-","1.25%"]
+])}
+
+function sectionPublicText(g){let rows=GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("");let pv=publicTable([
+ ["ドレス","20.0%","25.0%","35.0%","37.5〜40.8%","37.5〜40.5%"],
+ ["青島＆波多野","-","-","-","5.2%","4.5%"]
+]);return rows+pubFold("公表値",pv)}
 function directPublicText(){let rows=detailRows([
  detailLine("ボート",S.data.directBoat||0,"設定4以上"),
  detailLine("弱チェリー",S.data.directWeakCherry||0,"設定4以上"),
@@ -133,7 +164,13 @@ function directPublicText(){let rows=detailRows([
  detailLine("強チェリー",S.data.directStrongCherry||0,""),
  detailLine("強チャンス目",S.data.directStrongChance||0,"")
 ]);let pv=`<div class="pubSectionTitle">ボート・弱チェリー</div>${publicList(["設定4　0.4%","設定5　2.0%","設定6　3.1%"])}<div class="pubSectionTitle">弱チャンス目</div>${publicList(["設定4　0.8%","設定5　2.0%","設定6　3.1%"])}<div class="pubSectionTitle">強チェリー・強チャンス目</div>${publicList(["設定1　0.4%","設定2　1.2%","設定4　2.0%","設定5　3.9%","設定6　6.3%"])}`;return rows+pubFold("公表値",pv)}
-function pairPublicText(g){let d=GDEF[g];let rows=detailRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="pubTri"><div class="pubName">${l}</div><div class="pubNote">${p}</div><div class="pubCount">${i}/${h}</div></div>`}));if(g==="chargeItem"){let pv=publicList(["ボート：設定1 25.0% / 設定2 26.2% / 設定4 32.8% / 設定5 39.1% / 設定6 43.0%","弱チェリー：設定1 31.3% / 設定2 32.0% / 設定4 37.5% / 設定5 40.6% / 設定6 46.9%","弱チャンス目：設定1 50.0% / 設定2 50.8% / 設定4 58.6% / 設定5 62.5% / 設定6 66.4%","強チェリー・強チャンス目：100%"]);return rows+pubFold("公表値",pv)}return rows}
+function pairPublicText(g){let d=GDEF[g];let rows=detailRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="pubTri"><div class="pubName">${l}</div><div class="pubNote">${p}</div><div class="pubCount">${i}/${h}</div></div>`}));if(g==="chargeItem"){let pv=publicTable([
+ ["ボート","25.0%","26.2%","32.8%","39.1%","43.0%"],
+ ["弱チェリー","31.3%","32.0%","37.5%","40.6%","46.9%"],
+ ["弱チャンス目","50.0%","50.8%","58.6%","62.5%","66.4%"],
+ ["強チェリー","100%","100%","100%","100%","100%"],
+ ["強チャンス目","100%","100%","100%","100%","100%"]
+]);return rows+pubFold("公表値",pv)}return rows}
 function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function nearestPct(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
