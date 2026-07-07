@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-order-layout-v2";
+const VERSION="stage1-ui-order-layout";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -84,26 +84,44 @@ function floorRound(raw,floorPct){const keys=Object.keys(raw);let out={},fixed=0
 function round(raw){let e=Object.entries(raw).map(([k,v])=>({k,f:Math.floor(v),r:v-Math.floor(v)}));let s=e.reduce((a,x)=>a+x.f,0);e.sort((a,b)=>b.r-a.r);for(let i=0;s<100&&i<e.length;i++,s++)e[i].f++;e.sort((a,b)=>+a.k-+b.k);return Object.fromEntries(e.map(x=>[x.k,x.f]))}
 function bars(){let p=probs(),v=Object.values(p),mx=Math.max(...v),mn=Math.min(...v);$("bars").innerHTML=Object.entries(p).map(([s,x])=>`<div class="bar"><div>設定${s}</div><div class="track"><div class="fill ${x===mx?"max":x===mn?"min":""}" style="width:${Math.max(1,x)}%"></div></div><div>${x}%</div></div>`).join("")}
 function signals(){let l=[];if(S.data.trophyRainbow)l.push("トロフィー 虹（設定6確定）");if(S.data.ticketRainbow)l.push("舟券 虹（設定6確定）");if(S.data.over666)l.push("666枚OVER（設定6確定）");if(S.data.endOmedeto)l.push("澄『おめでとう！』（設定6確定）");if(S.data.trophyKerot)l.push("トロフィー ケロット柄（設定5以上）");if(S.data.over803)l.push("803枚OVER（設定5以上）");if(S.data.roundBoatKerot)l.push("ボートケロット（設定5以上）");if(S.data.roundAoshimaHatano)l.push("青島＆波多野（設定5以上）");if(S.data.endKitakita)l.push("青島『きたきたきたぁー！』（設定5以上）");if(S.data.trophyGold)l.push("トロフィー 金（設定4以上）");if(S.data.ticketGold)l.push("舟券 金（設定4以上）");if(S.data.voiceTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.endTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.over456)l.push("456枚OVER（設定4以上）");if(S.data.trophyBronze)l.push("トロフィー 銅（設定2以上）");if(S.data.ticketSilver)l.push("舟券 銀（偶数濃厚）");if(S.data.voiceOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");if(S.data.endOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");$("signals").classList.toggle("on",l.length>0);$("signals").innerHTML=l.length?`<div class="blockTitle">確定・否定</div>${l.map(x=>`<div class="signal">${x}</div>`).join("")}`:""}
-function jitems(){let keys=["atHit","fiveCoin",...GROUPS].filter(k=>S.visible[k]&&k!=="rare");$("judgeItems").innerHTML=keys.map(jitem).join("");$("judgeItems").querySelectorAll("[data-use]").forEach(c=>c.onchange=()=>{S.judgeUse[c.dataset.use]=c.checked;save();render()});$("judgeItems").querySelectorAll("[data-open]").forEach(el=>el.onclick=e=>{if(e.target.tagName==="INPUT")return;el.parentElement.classList.toggle("open")})}
-function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",pub="";if(k==="atHit"||k==="fiveCoin"){let inf=PUB[k],c=S.data[k]||0,den=(k==="fiveCoin"?S.data[S.fiveCoinBase]:S.data.normalGames)||0,rn=c&&den?den/c:null;title=inf.label;main=rn?`1/${trim(rn,1)}`:"-";near=rn?`（${nearest(rn,inf.values)}）`:"（-）";pub=Object.entries(inf.values).map(([s,v])=>`設定${s}　1/${v}`).join("<br>")}else{title=GDEF[k].label;main=gtotal(k)?`合計 ${gtotal(k)}回`:"-";pub=gtext(k)}let imp=S.showImpact?`<div class="starImpact">影響度 ${impactStars(k)}</div>`:"";return `<div class="jitem"><div class="jsum" data-open="${k}"><input type="checkbox" data-use="${k}" ${checked}><div><div class="jtitle">${title}</div><div class="jrate">${main}</div><div class="near">${near}</div>${imp}</div><div class="chev">▼</div></div><div class="pub">${pub}</div></div>`}
-function detailLine(l,cnt,note,cls=""){return `<div class="pubTri"><div class="pubName ${cls}">${l}</div><div class="pubCount">${cnt}回</div><div class="pubNote">${note||""}</div></div>`}
-function detailRows(rows){return `<div class="pubRows">${rows.join("")}</div>`}
-function gtext(g){if(g==="direct")return directPublicText();if(g==="chargeVoice")return detailRows([
- detailLine("波多野「落ち着くんだ…」",S.data.voiceCalm||0,"比率対象"),
- detailLine("波多野「この気配は！？」",S.data.voiceSign||0,"比率対象"),
- detailLine("榎木「おつかれ」",S.data.voiceOtsukare||0,"偶数濃厚","red"),
- detailLine("榎木「これが艇王と…」",S.data.voiceTeio||0,"設定4以上","red")
-])+`<div class="pubRatio">波多野比率　${S.data.voiceCalm||0}：${S.data.voiceSign||0}</div>`;if(g==="atSignals")return sectionPublicText(g);if(g==="endingVoice")return detailRows(GDEF.endingVoice.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));if(g==="chargeItem")return pairPublicText(g);let d=GDEF[g];if(d.paired)return pairPublicText(g);return detailRows(flatChildren(d).map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))}
-function sectionPublicText(g){return GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("")}
-function directPublicText(){return detailRows([
- detailLine("ボート",S.data.directBoat||0,"設定4 0.4% / 5 2.0% / 6 3.1%"),
- detailLine("弱チェリー",S.data.directWeakCherry||0,"設定4 0.4% / 5 2.0% / 6 3.1%"),
- detailLine("弱チャンス目",S.data.directWeakChance||0,"設定4 0.8% / 5 2.0% / 6 3.1%"),
- detailLine("強チェリー",S.data.directStrongCherry||0,"設定1 0.4% / 2 1.2% / 4 2.0% / 5 3.9% / 6 6.3%"),
- detailLine("強チャンス目",S.data.directStrongChance||0,"設定1 0.4% / 2 1.2% / 4 2.0% / 5 3.9% / 6 6.3%")
-])}
-function pairPublicText(g){let d=GDEF[g];return detailRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="pubTri"><div class="pubName">${l}</div><div class="pubCount">${i}/${h}</div><div class="pubNote">${p}</div></div>`}))}
-function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
+function jitems(){let keys=["atHit","fiveCoin",...GROUPS].filter(k=>S.visible[k]&&k!=="rare");$("judgeItems").innerHTML=keys.map(jitem).join("");$("judgeItems").querySelectorAll("[data-use]").forEach(c=>c.onchange=()=>{S.judgeUse[c.dataset.use]=c.checked;save();render()});$("judgeItems").querySelectorAll("[data-open]").forEach(el=>el.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.closest("[data-pub]"))return;el.parentElement.classList.toggle("open")});$("judgeItems").querySelectorAll("[data-pub]").forEach(el=>el.onclick=e=>{e.stopPropagation();el.parentElement.classList.toggle("pubopen")})}
+function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",body="";if(k==="atHit"||k==="fiveCoin"){let inf=PUB[k],c=S.data[k]||0,den=(k==="fiveCoin"?S.data[S.fiveCoinBase]:S.data.normalGames)||0,rn=c&&den?den/c:null;title=inf.label;main=rn?`1/${trim(rn,1)}`:"-";near=rn?`（${nearest(rn,inf.values)}）`:"（-）";body=simpleJudgeRows([[inf.label,near.replace(/[（）]/g,""),`${c}回`]])+pubFold(pubTable(inf.values,"1/"));}else{title=GDEF[k].label;main=gtotal(k)?`合計 ${gtotal(k)}回`:"-";body=gtext(k)}let imp=S.showImpact?`<div class="starImpact">影響度 ${impactStars(k)}</div>`:"";return `<div class="jitem"><div class="jsum" data-open="${k}"><input type="checkbox" data-use="${k}" ${checked}><div><div class="jtitle">${title}</div><div class="jrate">${main}</div><div class="near">${near}</div>${imp}</div><div class="chev">▼</div></div><div class="pub">${body}</div></div>`}
+function simpleJudgeRows(rows){return `<div class="judgeRows">${rows.map(([l,m,c,cls])=>`<div class="judgeRow"><div class="jrName ${cls||""}">${l}</div><div class="jrNote">${m||""}</div><div class="jrCount">${c||""}</div></div>`).join("")}</div>`}
+function pubFold(html){return `<div class="pubFold"><button class="pubToggle" data-pub="1">▶ 公表値</button><div class="pubContent">${html}</div></div>`}
+function pubTable(values,prefix=""){return `<div class="pubTable">${Object.entries(values).map(([s,v])=>`<div><span>設定${s}</span><b>${prefix}${v}</b></div>`).join("")}</div>`}
+function pubGroups(groups){return groups.map(g=>`<div class="pubGroup"><div class="pubGroupTitle">${g.title}</div>${pubTable(g.values,g.prefix||"")}</div>`).join("")}
+function gtext(g){
+ if(g==="direct")return directJudgeText();
+ if(g==="chargeVoice")return chargeVoiceJudgeText();
+ if(g==="atSignals")return sectionJudgeText(g)+pubFold(sectionPubText(g));
+ if(g==="endingVoice")return childrenJudgeRows(GDEF.endingVoice.children)+pubFold(childrenPubText(GDEF.endingVoice.children));
+ if(g==="chargeItem")return pairJudgeText(g)+pubFold(`<div class="pubNote">入力値から出現率を表示します。</div>`);
+ let d=GDEF[g];
+ if(d.paired)return pairJudgeText(g)+pubFold(`<div class="pubNote">入力値から出現率を表示します。</div>`);
+ return childrenJudgeRows(flatChildren(d))+pubFold(childrenPubText(flatChildren(d)));
+}
+function childrenJudgeRows(children){return simpleJudgeRows(children.map(([k,l,c])=>[l,NOTE[k]||"",`${S.data[k]||0}回`,c||""]))}
+function childrenPubText(children){return `<div class="pubList">${children.map(([k,l,c])=>`<div class="pubLine"><span class="${c||""}">${l}</span><b>${NOTE[k]||""}</b></div>`).join("")}</div>`}
+function sectionJudgeText(g){return GDEF[g].sections.map(sec=>`<div class="judgeSectionTitle">${sec.title}</div>`+simpleJudgeRows(sec.children.map(([k,l,c])=>[l,NOTE[k]||"",`${S.data[k]||0}回`,c||""]))).join("")}
+function sectionPubText(g){return GDEF[g].sections.map(sec=>`<div class="pubGroup"><div class="pubGroupTitle">${sec.title}</div>${childrenPubText(sec.children)}</div>`).join("")}
+function chargeVoiceJudgeText(){let rows=[
+ ["波多野「落ち着くんだ…」","",`${S.data.voiceCalm||0}回`,""],
+ ["波多野「この気配は！？」","",`${S.data.voiceSign||0}回`,""],
+ ["榎木「おつかれ」","偶数濃厚",`${S.data.voiceOtsukare||0}回`,"red"],
+ ["榎木「これが艇王と…」","設定4以上",`${S.data.voiceTeio||0}回`,"red"]
+];return `<div class="ratioLine">波多野比率　<strong>${S.data.voiceCalm||0}：${S.data.voiceSign||0}</strong></div>`+simpleJudgeRows(rows)+pubFold(`<div class="pubList"><div class="pubLine"><span>波多野「落ち着くんだ…」</span><b>比率判別</b></div><div class="pubLine"><span>波多野「この気配は！？」</span><b>比率判別</b></div><div class="pubLine"><span class="red">榎木「おつかれ」</span><b>偶数濃厚</b></div><div class="pubLine"><span class="red">榎木「これが艇王と…」</span><b>設定4以上</b></div></div>`)}
+function directJudgeText(){let rows=[
+ ["ボート","設定4以上",`${S.data.directBoat||0}回`,""],
+ ["弱チェリー","設定4以上",`${S.data.directWeakCherry||0}回`,""],
+ ["弱チャンス目","設定4以上",`${S.data.directWeakChance||0}回`,""],
+ ["強チェリー","",`${S.data.directStrongCherry||0}回`,""],
+ ["強チャンス目","",`${S.data.directStrongChance||0}回`,""]
+];let pub=pubGroups([
+ {title:"ボート・弱チェリー",values:{4:"0.4%",5:"2.0%",6:"3.1%"}},
+ {title:"弱チャンス目",values:{4:"0.8%",5:"2.0%",6:"3.1%"}},
+ {title:"強チェリー・強チャンス目",values:{1:"0.4%",2:"1.2%",4:"2.0%",5:"3.9%",6:"6.3%"}}
+]);return simpleJudgeRows(rows)+pubFold(pub)}
+function pairJudgeText(g){let d=GDEF[g];return simpleJudgeRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return [l,p,`${i}/${h}`]}))}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function impactStars(k){let n={atHit:5,fiveCoin:4,direct:4,chargeVoice:3,atSignals:5,endingVoice:5,trophy:5,ticket:5,medal:2,rival:2,chargeItem:2}[k]||1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 function gtotal(g){let d=GDEF[g];if(d.sections)return d.sections.reduce((a,sec)=>a+sec.children.reduce((b,[k])=>b+(S.data[k]||0),0),0);if(d.paired)return d.children.reduce((a,[k])=>a+(S.data[k+"Hit"]||0)+(S.data[k+"Item"]||0),0);return d.children.reduce((a,[k])=>a+(S.data[k]||0),0)}
