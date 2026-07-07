@@ -1,12 +1,14 @@
-# monkeyturnv-counter stage1-ui
+# モンキーターンV カウンター
 
-新しいリポジトリ用のクリーン版です。
+GitHub Pages用のスマホ向けカウンターです。
 
-アップロードするファイルはこの6個だけです。
+## stage1-ui
 
-- index.html
-- app.js
-- style.css
-- manifest.json
-- service-worker.js
-- README.md
+- 6ファイル構成を維持
+- iPhone向けカードUIを維持
+- AT直撃を5契機に分割
+- チャージ後セリフを短縮表示
+- AT中示唆を追加
+- エンディング中サブ液晶を追加
+- SGメダル/トロフィー/舟券を実機仕様に整理
+- 設定判別画面から総ゲーム数を除外
