@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v8";
+const VERSION="stage1-ui-judge-layout-v9";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -43,8 +43,8 @@ const PUB={atHit:{label:"AT初当たり",values:{1:299.8,2:295.5,4:258.8,5:235.7
 const DEF={data:{games:0,normalGames:0,atGames:0,atHit:0,fiveCoin:0},visible:{},judgeUse:{},showImpact:false,fiveCoinBase:"games",step:{plus:500,minus:100},open:{},lastGames:["games","normalGames"]};
 for(const [k] of DISPLAY){DEF.visible[k]=true;DEF.judgeUse[k]=["atHit"].includes(k)}
 for(const [g,d] of Object.entries(GDEF)){if(d.sections){d.sections.forEach(sec=>sec.children.forEach(([k])=>DEF.data[k]=0))}else if(d.paired){for(const [k] of d.children){DEF.data[k+"Hit"]=0;DEF.data[k+"Item"]=0}}else{for(const [k] of d.children)DEF.data[k]=0}}
-let S=load();let hold=null,lastTouch=0;
-document.addEventListener("touchend",e=>{let n=Date.now();if(n-lastTouch<300)e.preventDefault();lastTouch=n},{passive:false});
+let S=load();let hold=null;
+// ダブルタップ拡大は meta viewport / touch-action で抑止し、カウンターボタンの連打は妨げない。
 document.addEventListener("DOMContentLoaded",()=>{bind();S.open={};save();render()});
 function $(id){return document.getElementById(id)}
 function load(){try{return merge(structuredClone(DEF),JSON.parse(localStorage.getItem(STORAGE_KEY))||{})}catch{return structuredClone(DEF)}}
@@ -92,8 +92,8 @@ function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",
   pub=publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`1/${val}`])));
  }else if(k==="immediateYushutsu"){
   let inf=PUB[k],c=S.data[k]||0,den=Math.max(0,(S.data.atHit||0)-1),rv=den?c/den*100:null;
-  title=inf.label;let n=rv!==null?nearestPct(rv,inf.values):"-";main=rv!==null?`${trim(rv,1)}%（${n}）`:"0%";near=den?`分母：AT初当たり−1 = ${den}`:"分母：AT初当たり−1";
-  pub=pubFold("公表値",publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`${val}%`]))));
+  title=inf.label;let n=rv!==null?nearestPct(rv,inf.values):"-";main=rv!==null?`${trim(rv,1)}%（${n}）`:"0%";near="";
+  pub=publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`${val}%`])));
  }else{
   title=GDEF[k].label;main=gtotal(k)?`${gtotal(k)}回`:"-";pub=gtext(k)
  }
@@ -160,7 +160,7 @@ function endingPublic(){return publicTable([
  ["澄 おめでとう","-","-","-","-","1.25%"]
 ])}
 
-function sectionPublicText(g){let rows=GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("");let pv=publicTable([
+function sectionPublicText(g){let rows=GDEF[g].sections.map(sec=>`<div class="pubSectionTitle">${sec.title}</div>`+detailRows(sec.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")))).join("");rows+=`<div class="caution">※青島＆波多野は青島SPフリーズ経由を除外</div>`;let pv=publicTable([
  ["ドレス","20.0%","25.0%","35.0%","37.5〜40.8%","37.5〜40.5%"],
  ["青島＆波多野","-","-","-","5.2%","4.5%"]
 ]);return rows+pubFold("公表値",pv)}
