@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v11";
+const VERSION="stage1-ui-judge-layout-v12";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
