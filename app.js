@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v14";
+const VERSION="stage1-ui-judge-layout-v15";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -115,7 +115,7 @@ function gtext(g){
  if(g==="direct")return directPublicText();
  if(g==="chargeVoice"){
   let den=(S.data.voiceCalm||0)+(S.data.voiceSign||0);
-  let top=`<div class="pubRatio"><div class="pubRatioMain">${hatanoRatioText()}</div><div class="pubRatioSub">（落ち着くんだ…：この気配は!?）</div></div>`;
+  let top=`<div class="pubRatio"><div class="pubRatioSub">（落ち着くんだ…：この気配は!?）</div></div>`;
   let rows=detailRows([
    detailLine("波多野「落ち着くんだ…」",S.data.voiceCalm||0,"","",den?pctText(S.data.voiceCalm||0,den):""),
    detailLine("波多野「この気配は!?」",S.data.voiceSign||0,"","",den?pctText(S.data.voiceSign||0,den):""),
