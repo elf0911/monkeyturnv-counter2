@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v15";
+const VERSION="stage1-ui-judge-layout-v16-bayes";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -11,7 +11,7 @@ const DISPLAY=[
 ];
 const SINGLE={
  games:{label:"総ゲーム数",unit:"G",game:true},normalGames:{label:"通常ゲーム数",unit:"G",game:true},atGames:{label:"ATゲーム数",unit:"G",game:true},
- atHit:{label:"AT初当たり",unit:"回",denom:"normalGames"},fiveCoin:{label:"5枚役",unit:"回",denom:"normalGames"},immediateYushutsu:{label:"即優出",unit:"回",pctBase:"atHitMinus1"}
+ atHit:{label:"AT初当たり",unit:"回",denom:"normalGames"},fiveCoin:{label:"5枚役",unit:"回",denom:"normalGames"},immediateYushutsu:{label:"即優出",unit:"回",pctBase:"atHit"}
 };
 const GROUPS=["rare","chargeVoice","medal","trophy","ticket","direct","chargeItem","rival","atSignals","endingVoice"];
 const NOTE={
@@ -26,7 +26,7 @@ const NOTE={
 const GDEF={
  rare:{label:"レア小役",children:[["boat","ボート"],["weakCherry","弱チェリー"],["weakChance","弱チャンス目"],["strongCherry","強チェリー"],["strongChance","強チャンス目"]],rate:"normalGames"},
  direct:{label:"AT直撃",children:[["directBoat","ボート"],["directWeakCherry","弱チェリー"],["directWeakChance","弱チャンス目"],["directStrongCherry","強チェリー"],["directStrongChance","強チャンス目"]]},
- rival:{label:"ライバルモード",children:[["rivalEnoki","榎木"],["rivalGamo","蒲生"],["rivalHamaoka","浜岡"]],percent:"atHit"},
+ rival:{label:"ライバルモード",children:[["rivalEnoki","榎木"],["rivalGamo","蒲生"],["rivalHamaoka","浜岡"],["rivalDoguchi","洞口"],["rivalAoshima","青島"],["rivalMonoHatano","モノクロ波多野"]],percent:"atHit"},
  chargeItem:{label:"激走チャージ中アイテム",paired:true,children:[["chargeWeakCherry","弱チェリー"],["chargeStrongCherry","強チェリー"],["chargeWeakChance","弱チャンス目"],["chargeStrongChance","強チャンス目"],["chargeBoat","ボート"]]},
  chargeVoice:{label:"激走チャージ後セリフ",children:[["voiceCalm","波多野「落ち着くんだ…」"],["voiceSign","波多野「この気配は！？」"],["voiceOtsukare","榎木「おつかれ」","red"],["voiceTeio","榎木「これが艇王と…」","red"]]},
  atSignals:{label:"AT中示唆",sections:[
@@ -62,7 +62,7 @@ function screen(id){document.querySelectorAll(".screen").forEach(s=>s.classList.
 function render(){home();settings();judge()}
 function home(){let h="";for(const [k] of DISPLAY){if(!S.visible[k])continue;if(SINGLE[k])h+=row(k,SINGLE[k]);else h+=group(k)}$("homeList").innerHTML=h;dyn($("homeList"))}
 function fiveBaseControl(scope="home"){return `<div class="fiveBase ${scope}"><span>分母</span><label><input type="radio" name="fiveBase_${scope}" value="games" ${S.fiveCoinBase==="games"?"checked":""}>総G</label><label><input type="radio" name="fiveBase_${scope}" value="normalGames" ${S.fiveCoinBase==="normalGames"?"checked":""}>通常G</label></div>`}
-function row(k,it,sub=false){let v=S.data[k]||0,denomKey=(k==="fiveCoin"?S.fiveCoinBase:it.denom),r="",displayVal=`${v}${it.unit||"回"}`;if(k==="immediateYushutsu"){let den=Math.max(0,(S.data.atHit||0)-1);let pctv=den?`${trim(v/den*100,1)}%`:"0%";displayVal=pctv;r=`${v}回`;}else if(denomKey)r=rate(v,S.data[denomKey]);let cls=sub?"subrow":"row";let btn=it.game?`<button class="btn gamebtn" data-c="${k}" data-d="${S.step.plus}">＋${S.step.plus}</button><button class="btn gamebtn" data-c="${k}" data-d="-${S.step.minus}">－${S.step.minus}</button>`:`<button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button>`;let extra=k==="fiveCoin"?fiveBaseControl("home"):"";return `<div class="${cls}" data-hold="${k}"><div class="top"><div class="name">${it.label}</div><div class="value">${displayVal}</div>${btn}</div>${r?`<div class="rate">${r}</div>`:""}${extra}</div>`}
+function row(k,it,sub=false){let v=S.data[k]||0,denomKey=(k==="fiveCoin"?S.fiveCoinBase:it.denom),r="",displayVal=`${v}${it.unit||"回"}`;if(k==="immediateYushutsu"){let den=S.data.atHit||0;let pctv=den?`${trim(v/den*100,1)}%`:"0%";displayVal=pctv;r=`${v}回`;}else if(denomKey)r=rate(v,S.data[denomKey]);let cls=sub?"subrow":"row";let btn=it.game?`<button class="btn gamebtn" data-c="${k}" data-d="${S.step.plus}">＋${S.step.plus}</button><button class="btn gamebtn" data-c="${k}" data-d="-${S.step.minus}">－${S.step.minus}</button>`:`<button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button>`;let extra=k==="fiveCoin"?fiveBaseControl("home"):"";return `<div class="${cls}" data-hold="${k}"><div class="top"><div class="name">${it.label}</div><div class="value">${displayVal}</div>${btn}</div>${r?`<div class="rate">${r}</div>`:""}${extra}</div>`}
 function group(g){let d=GDEF[g],open=S.open[g]?"open":"",total=gtotal(g),body="";if(d.sections){body=d.sections.map(sec=>`<div class="sectionTitle">${sec.title}</div>`+sec.children.map(ch=>childRow(g,ch)).join("")).join("");if(g==="atSignals")body+=`<div class="caution counterCaution">※青島＆波多野は青島SPフリーズ経由を除外</div>`}else if(d.paired){body=d.children.map(([k,l])=>paired(k,l)).join("")}else{body=d.children.map(ch=>childRow(g,ch)).join("")}let noTotal=["chargeVoice","atSignals","endingVoice","chargeItem"].includes(g);let totalHtml=noTotal?"":`<span class="gtotal">${total}回</span>`;return `<div class="group ${open}"><button class="ghead" data-t="${g}"><span class="chev">${S.open[g]?"▼":"▶"}</span><span class="groupTitle">${d.label}</span>${totalHtml}</button><div class="gbody">${body}</div></div>`}
 function childRow(g,[k,l,c]){let sub=info(g,k),note=NOTE[k],cc=c?` ${c}`:"",extra=sub?`<div class="subnote subextra">${sub}</div>`:"";return `<div class="subrow trirow" data-hold="${k}"><div class="tri"><div class="triName name${cc}">${l}</div><div class="triCount">${S.data[k]||0}回</div><div class="triNote">${note||""}</div></div><div class="subBtns"><button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button></div>${extra}</div>`}
 function paired(k,l){let h=S.data[k+"Hit"]||0,i=S.data[k+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="subrow"><div class="name">${l}</div><div class="top" data-hold="${k}Hit"><div class="name subnote">成立</div><div class="value">${h}回</div><button class="btn" data-c="${k}Hit" data-d="1">＋</button><button class="btn" data-c="${k}Hit" data-d="-1">－</button></div><div class="top" data-hold="${k}Item"><div class="name subnote">獲得</div><div class="value">${i}回</div><button class="btn" data-c="${k}Item" data-d="1">＋</button><button class="btn" data-c="${k}Item" data-d="-1">－</button></div><div class="subnote">${p}</div></div>`}
@@ -77,10 +77,79 @@ function label(k){if(SINGLE[k])return SINGLE[k].label;for(const d of Object.valu
 function gameRel(k){if(!["games","normalGames","atGames"].includes(k))return;let g=Math.max(0,S.data.games||0),n=Math.max(0,S.data.normalGames||0),at=Math.max(0,S.data.atGames||0);if(k==="normalGames"){n=Math.min(n,g);if(n+at>g)at=Math.max(0,g-n);}else if(k==="atGames"){at=Math.min(at,g);if(n+at>g)n=Math.max(0,g-at);}else if(k==="games"){n=Math.min(n,g);at=Math.min(at,Math.max(0,g-n));}S.data.games=g;S.data.normalGames=n;S.data.atGames=at;}
 function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus;let old=document.getElementById("rareNoteBox");if(old)old.remove();let box=document.createElement("div");box.id="rareNoteBox";box.className="list helpBox";box.innerHTML=`<p class="holdHelp"><strong>※各カウンターは長押しすると直接数値を入力できます。</strong></p><div class="helpTitle">【レア小役について】</div><p>AT直撃率を正確に算出するために使用します。</p><p>入力しない場合は、通常ゲーム数と公表確率から推定直撃率を表示します。</p>`;$("settingList").insertAdjacentElement("beforebegin",box)}
 function judge(){$("impactToggle").checked=!!S.showImpact;bars();signals();jitems()}
-function probs(){let sc=Object.fromEntries(SETS.map(s=>[s,1]));if(S.visible.atHit&&S.judgeUse.atHit)pois(sc,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,.45);if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)pois(sc,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,.55);if(S.visible.direct&&S.judgeUse.direct)applyDirect(sc);let allow=allowed();let hasRestrict=allow.length<SETS.length;SETS.forEach(s=>{if(!allow.includes(s))sc[s]=0});let sum=Object.values(sc).reduce((a,b)=>a+b,0)||1;let raw=Object.fromEntries(SETS.map(s=>[s,sc[s]/sum*100]));return hasRestrict?round(raw):floorRound(raw,1)}
-function pois(sc,c,den,vals,w){if(!c||!den)return;for(const s of SETS){let p=1/vals[s],exp=den*p;let score=Math.exp(-Math.pow(c-exp,2)/(2*Math.max(1,exp)))*Math.pow(Math.max(.0001,p),c*w);sc[s]*=Math.max(.000001,score)}}
-function applyDirect(sc){let counts={directBoat:S.data.directBoat||0,directWeakCherry:S.data.directWeakCherry||0,directWeakChance:S.data.directWeakChance||0,directStrongCherry:S.data.directStrongCherry||0,directStrongChance:S.data.directStrongChance||0};const rates={weak:{1:.01,2:.01,4:.4,5:2.0,6:3.1},weakChance:{1:.01,2:.01,4:.8,5:2.0,6:3.1},strong:{1:.4,2:1.2,4:2.0,5:3.9,6:6.3}};for(const s of SETS){if(counts.directBoat)sc[s]*=Math.pow(rates.weak[s],counts.directBoat*1.1);if(counts.directWeakCherry)sc[s]*=Math.pow(rates.weak[s],counts.directWeakCherry*1.1);if(counts.directWeakChance)sc[s]*=Math.pow(rates.weakChance[s],counts.directWeakChance*1.2);if(counts.directStrongCherry)sc[s]*=Math.pow(rates.strong[s],counts.directStrongCherry*1.2);if(counts.directStrongChance)sc[s]*=Math.pow(rates.strong[s],counts.directStrongChance*1.2)}}
-function allowed(){let a=[...SETS];const ge=n=>a=a.filter(s=>s>=n),only=n=>a=a.filter(s=>s===n),even=()=>a=a.filter(s=>s===2||s===4||s===6);if(S.data.trophyBronze)ge(2);if(S.data.trophyGold||S.data.ticketGold||S.data.voiceTeio||S.data.endTeio||S.data.over456)ge(4);if(S.data.trophyKerot||S.data.over803||S.data.roundBoatKerot||S.data.roundAoshimaHatano||S.data.endKitakita)ge(5);if(S.data.trophyRainbow||S.data.ticketRainbow||S.data.over666||S.data.endOmedeto)only(6);if(S.data.ticketSilver||S.data.voiceOtsukare||S.data.endOtsukare)even();return a.length?a:SETS}
+function probs(){
+ const allow=allowed();
+ let log=Object.fromEntries(SETS.map(s=>[s,allow.includes(s)?0:-1e9]));
+ if(S.visible.atHit&&S.judgeUse.atHit)bayesBinomDenom(log,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,atHitWeight()/100);
+ if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)bayesBinomDenom(log,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,fiveCoinWeight()/100);
+ if(S.visible.immediateYushutsu&&S.judgeUse.immediateYushutsu)applyImmediate(log);
+ if(S.visible.direct&&S.judgeUse.direct)applyDirect(log);
+ if(S.visible.medal&&S.judgeUse.medal)applyMedal(log);
+ if(S.visible.trophy&&S.judgeUse.trophy)applyTrophy(log);
+ if(S.visible.chargeVoice&&S.judgeUse.chargeVoice)applyChargeVoice(log);
+ if(S.visible.chargeItem&&S.judgeUse.chargeItem)applyChargeItem(log);
+ if(S.visible.rival&&S.judgeUse.rival)applyRival(log);
+ if(S.visible.atSignals&&S.judgeUse.atSignals)applyRoundSignals(log);
+ if(S.visible.endingVoice&&S.judgeUse.endingVoice)applyEnding(log);
+ let raw=softmax(log);return allow.length<SETS.length?round(raw):floorRound(raw,1)
+}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+function atHitWeight(){let g=S.data.normalGames||0;return clamp(10+(g/6000)*70,10,80)}
+function fiveCoinWeight(){let g=S.data[S.fiveCoinBase]||0;return clamp(20+(g/1500)*60,20,80)}
+function weightByCount(c,vals){if(c<=0)return vals[0];if(c===1)return vals[1];if(c===2)return vals[2];return vals[3]??vals[2]}
+function softmax(log){let max=Math.max(...SETS.map(s=>log[s]));let ex=Object.fromEntries(SETS.map(s=>[s,Math.exp(log[s]-max)]));let sum=Object.values(ex).reduce((a,b)=>a+b,0)||1;return Object.fromEntries(SETS.map(s=>[s,ex[s]/sum*100]))}
+function addLog(log,s,val){if(Number.isFinite(val))log[s]+=val}
+function bayesBinom(log,c,n,probBySet,w){if(!n||w<=0)return;for(const s of SETS){let p=probBySet[s];if(p==null)return;p=Math.max(1e-6,Math.min(1-1e-6,p));addLog(log,s,w*(c*Math.log(p)+(n-c)*Math.log(1-p)))}}
+function bayesBinomDenom(log,c,n,denomBySet,w){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w)}
+function bayesMult(log,counts,probRows,w){if(w<=0)return;for(const s of SETS){let ll=0;for(const [key,probBySet] of probRows){let c=counts[key]||0;if(!c)continue;let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));ll+=c*Math.log(p)}addLog(log,s,w*ll)}}
+function pctMap(o){let m={};for(const [s,v] of Object.entries(o))m[s]=v/100;return m}
+function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(!n)return;let w=weightByCount(c,{0:5,1:50,2:80,3:90})/100;bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),w)}
+function applyDirect(log){
+ const pairs=[
+  ['directBoat','boat',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1}),'weak'],
+  ['directWeakCherry','weakCherry',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1}),'weak'],
+  ['directWeakChance','weakChance',pctMap({1:0.0001,2:0.0001,4:0.8,5:2.0,6:3.1}),'weak'],
+  ['directStrongCherry','strongCherry',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong'],
+  ['directStrongChance','strongChance',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong']
+ ];
+ for(const [dk,rk,prob,type] of pairs){let c=S.data[dk]||0;let n=S.data[rk]||estimatedRare(rk);if(!n)continue;let w=(type==='weak'?weightByCount(c,{0:5,1:80,2:95,3:95}):weightByCount(c,{0:5,1:40,2:65,3:80}))/100;bayesBinom(log,c,n,prob,w)}
+}
+function applyMedal(log){let c=S.data.medalBlack||0,n=S.data.atHit||0;if(n){let w=weightByCount(c,{0:5,1:20,2:40,3:40})/100;bayesBinom(log,c,n,pctMap({1:1.25,2:1.5,4:4.0,5:4.5,6:4.5}),w)}
+ // 青・黄は通常出現率が不明なため、通常判別には入れない。
+}
+function applyTrophy(log){let counts={bronze:S.data.trophyBronze||0,gold:S.data.trophyGold||0,kerot:S.data.trophyKerot||0,rainbow:S.data.trophyRainbow||0};let rows=[
+ ['bronze',pctMap({1:0.0001,2:5.0,4:3.4,5:3.4,6:3.5})],
+ ['gold',pctMap({1:0.0001,2:0.0001,4:4.4,5:3.6,6:3.9})],
+ ['kerot',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.1,6:1.6})]
+];bayesMult(log,counts,rows,0.6)}
+function applyChargeVoice(log){let a=S.data.voiceCalm||0,b=S.data.voiceSign||0;if(a+b){bayesMult(log,{calm:a,sign:b},[
+ ['calm',pctMap({1:50,2:40,4:40,5:70,6:40})],['sign',pctMap({1:50,2:60,4:60,5:30,6:60})]
+],0.4)}}
+function applyChargeItem(log){
+ const defs=[
+  ['chargeBoat','boat',pctMap({1:25.0,2:26.2,4:32.8,5:39.1,6:43.0}),0.50],
+  ['chargeWeakCherry','weakCherry',pctMap({1:31.3,2:32.0,4:37.5,5:40.6,6:46.9}),0.50],
+  ['chargeWeakChance','weakChance',pctMap({1:50.0,2:50.8,4:58.6,5:62.5,6:66.4}),0.50],
+  ['chargeStrongCherry','strongCherry',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40],
+  ['chargeStrongChance','strongChance',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40]
+ ];
+ for(const [base,rare,prob,w] of defs){let c=S.data[base+'Item']||0,n=S.data[rare]||S.data[base+'Hit']||0;if(!n)continue;bayesBinom(log,c,n,prob,w)}
+}
+function applyRival(log){let n=S.data.atHit||0;if(!n)return;let rows=[
+ ['rivalEnoki',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})],
+ ['rivalGamo',pctMap({1:7.8,2:8.6,4:10.9,5:14.1,6:15.6})],
+ ['rivalHamaoka',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})]
+];for(const [key,prob] of rows)bayesBinom(log,S.data[key]||0,n,prob,0.20)}
+function applyRoundSignals(log){let n=Math.max(1,S.data.atHit||0);bayesBinom(log,S.data.roundDress||0,n,pctMap({1:20.0,2:25.0,4:35.0,5:39.0,6:39.0}),0.30);bayesBinom(log,S.data.roundAoshimaHatano||0,n,pctMap({1:0.0001,2:0.0001,4:0.0001,5:5.2,6:4.5}),0.30)}
+function applyEnding(log){let total=endingTotal();if(!total)return;let rows=[
+ ['endIkuyo',pctMap({1:10,2:15,4:15,5:10,6:15})],
+ ['endIiKanji',pctMap({1:10,2:10,4:15,5:15,6:15})],
+ ['endYarujanai',pctMap({1:5,2:5,4:10,5:12,6:12})],
+ ['endOtsukare',pctMap({1:0.0001,2:2.5,4:2.5,5:0.0001,6:1.25})],
+ ['endTeio',pctMap({1:0.0001,2:0.0001,4:2.5,5:2.5,6:1.25})],
+ ['endKitakita',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.5,6:1.25})]
+];bayesMult(log,Object.fromEntries(GDEF.endingVoice.children.map(([k])=>[k,S.data[k]||0])),rows,0.40)}
+function allowed(){let a=[...SETS];const ge=n=>a=a.filter(s=>s>=n),only=n=>a=a.filter(s=>s===n),even=()=>a=a.filter(s=>s===2||s===4||s===6);if(S.data.trophyBronze)ge(2);if(S.data.trophyGold||S.data.ticketGold||S.data.voiceTeio||S.data.endTeio||S.data.over456||S.data.directBoat||S.data.directWeakCherry||S.data.directWeakChance)ge(4);if(S.data.trophyKerot||S.data.over803||S.data.roundBoatKerot||S.data.roundAoshimaHatano||S.data.endKitakita)ge(5);if(S.data.trophyRainbow||S.data.ticketRainbow||S.data.over666||S.data.endOmedeto)only(6);if(S.data.ticketSilver||S.data.voiceOtsukare||S.data.endOtsukare)even();return a.length?a:SETS}
 function floorRound(raw,floorPct){const keys=Object.keys(raw);let out={},fixed=0,flex=[];for(const k of keys){if(raw[k]<=0)out[k]=0;else{out[k]=floorPct;fixed+=floorPct;flex.push(k)}}const remain=Math.max(0,100-fixed),rawSum=flex.reduce((a,k)=>a+raw[k],0)||1;flex.forEach(k=>out[k]+=raw[k]/rawSum*remain);let rounded=round(out),need=0;for(const k of flex){if(rounded[k]<floorPct){need+=floorPct-rounded[k];rounded[k]=floorPct}}while(need>0){let c=flex.filter(k=>rounded[k]>floorPct);if(!c.length)break;let m=c.sort((a,b)=>rounded[b]-rounded[a])[0];rounded[m]-=1;need--}return rounded}
 function round(raw){let e=Object.entries(raw).map(([k,v])=>({k,f:Math.floor(v),r:v-Math.floor(v)}));let s=e.reduce((a,x)=>a+x.f,0);e.sort((a,b)=>b.r-a.r);for(let i=0;s<100&&i<e.length;i++,s++)e[i].f++;e.sort((a,b)=>+a.k-+b.k);return Object.fromEntries(e.map(x=>[x.k,x.f]))}
 function bars(){let p=probs(),v=Object.values(p),mx=Math.max(...v),mn=Math.min(...v);$("bars").innerHTML=Object.entries(p).map(([s,x])=>`<div class="bar"><div>設定${s}</div><div class="track"><div class="fill ${x===mx?"max":x===mn?"min":""}" style="width:${Math.max(1,x)}%"></div></div><div>${x}%</div></div>`).join("")}
@@ -92,7 +161,7 @@ function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",
   title=inf.label;let n=rn?nearest(rn,inf.values):"-";main=rn?`1/${trim(rn,1)}（${n}）`:"-";near="";
   pub=(k==="fiveCoin"?fiveBaseControl("judge"):"")+publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`1/${val}`])));
  }else if(k==="immediateYushutsu"){
-  let inf=PUB[k],c=S.data[k]||0,den=Math.max(0,(S.data.atHit||0)-1),rv=den?c/den*100:null;
+  let inf=PUB[k],c=S.data[k]||0,den=S.data.atHit||0,rv=den?c/den*100:null;
   title=inf.label;let n=rv!==null?nearestPct(rv,inf.values):"-";main=rv!==null?`${trim(rv,1)}%（${n}）`:"0%";near="";
   pub=publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`${val}%`])));
  }else{
@@ -138,7 +207,10 @@ function gtext(g){
  ["榎木","7.8%","8.2%","9.4%","10.5%","10.9%"],
  ["蒲生","7.8%","8.6%","10.9%","14.1%","15.6%"],
  ["浜岡","7.8%","8.2%","9.4%","10.5%","10.9%"],
- ["トータル","30.0%","31.6%","36.3%","41.7%","44.0%"]
+ ["洞口","設定差なし","設定差なし","設定差なし","設定差なし","設定差なし"],
+ ["青島","設定差なし","設定差なし","設定差なし","設定差なし","設定差なし"],
+ ["モノクロ波多野","設定差なし","設定差なし","設定差なし","設定差なし","設定差なし"],
+ ["設定差あり合計","30.0%","31.6%","36.3%","41.7%","44.0%"]
 ]);return rows+pubFold("公表値",pv)}
  if(g==="ticket"){let rows=detailRows(GDEF.ticket.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
  ["銀","-","0.5%","0.6%","-","0.6%"],
@@ -203,7 +275,7 @@ function directPct(directKey,rareKey){let cnt=S.data[directKey]||0,base=S.data[r
 function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function nearestPct(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
-function impactStars(k){let n={atHit:5,fiveCoin:4,direct:4,chargeVoice:3,atSignals:5,endingVoice:5,trophy:5,ticket:5,medal:2,rival:2,chargeItem:2}[k]||1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
+function impactStars(k){let n={atHit:4,fiveCoin:4,immediateYushutsu:4,direct:4,chargeVoice:3,atSignals:3,endingVoice:3,trophy:4,ticket:5,medal:2,rival:2,chargeItem:4}[k]||1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 function gtotal(g){let d=GDEF[g];if(d.sections)return d.sections.reduce((a,sec)=>a+sec.children.reduce((b,[k])=>b+(S.data[k]||0),0),0);if(d.paired)return d.children.reduce((a,[k])=>a+(S.data[k+"Hit"]||0)+(S.data[k+"Item"]||0),0);return d.children.reduce((a,[k])=>a+(S.data[k]||0),0)}
 function rate(c,d){return c&&d?`1/${trim(d/c,1)}`:"-"}function pct(c,d){return c&&d?`${trim(c/d*100,1)}%`:"-"}function trim(v,n){return Number(v.toFixed(n)).toString()}
 function reset(){if(!confirm("現在の実戦データをリセットしますか？"))return;let keep={visible:structuredClone(S.visible),judgeUse:structuredClone(S.judgeUse),step:structuredClone(S.step),showImpact:S.showImpact,fiveCoinBase:S.fiveCoinBase};S=structuredClone(DEF);Object.assign(S,keep);save();render()}
