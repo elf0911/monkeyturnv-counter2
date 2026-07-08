@@ -185,80 +185,47 @@ input[type=radio]{accent-color:var(--blue)}
 }
 
 
-/* v13 corrections */
-.helpBox{margin:0 0 14px!important;padding:14px!important;line-height:1.55!important;color:var(--sub)!important;font-size:13px!important}
-.helpBox p{margin:7px 0 0!important}
-.helpStrong{margin:0 0 12px!important;color:var(--text)!important;font-weight:800!important}
-.helpTitle{color:var(--text)!important;font-weight:800!important;margin:0 0 6px!important}
-.pubPct{margin-top:2px;color:var(--sub);font-size:11px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums}
-.pubCount{line-height:1.2}
+/* v14 follow-up fixes */
+.helpBox .holdHelp{margin:0 0 16px!important;color:var(--text)!important;}
+.helpBox .holdHelp strong{font-weight:800!important;}
+.helpBox .helpTitle{margin-top:0!important;margin-bottom:6px!important;}
 
-/* Public tables: default keeps the first column fixed and scrolls only setting columns. */
-.pubTableWrap:not(.oneRowWrap){
-  overflow-x:auto!important;
-  overflow-y:visible!important;
-  -webkit-overflow-scrolling:touch!important;
-  max-width:100%!important;
-}
-.pubTable:not(.oneRow){
-  min-width:500px!important;
-  width:max-content!important;
-  font-size:10.5px!important;
-  border-collapse:separate!important;
-  border-spacing:0!important;
-}
-.pubTable:not(.oneRow) th,.pubTable:not(.oneRow) td{
-  padding:4px 4px!important;
-  line-height:1.2!important;
-}
-.pubTable:not(.oneRow) .stickyCol{
-  position:sticky!important;
-  left:0!important;
-  z-index:2!important;
-  min-width:6.8em!important;
-  max-width:8em!important;
-  box-shadow:1px 0 0 var(--line)!important;
-}
-.pubTable:not(.oneRow) th.stickyCol{
-  z-index:3!important;
-  background:var(--btn)!important;
-}
-.pubTable:not(.oneRow) td.stickyCol{
-  background:var(--panel)!important;
-}
+.pubRatio{margin:0 0 10px!important;color:var(--text)!important;}
+.pubRatioMain{font-size:20px;font-weight:800;line-height:1.25;}
+.pubRatioSub{font-size:12px;color:var(--sub);margin-top:2px;}
+.pubSubPct{font-size:12px;color:var(--sub);font-weight:600;line-height:1.25;margin-top:2px;}
 
-/* AT初当たり・5枚役・即優出: no horizontal scroll, unified header color including first column. */
-.oneRowWrap{
-  overflow-x:hidden!important;
-  width:100%!important;
-}
+/* Small 2-row tables for AT初当たり・5枚役・即優出: no horizontal scroll */
+.oneRowWrap{overflow-x:hidden!important;}
 .pubTable.oneRow{
   width:100%!important;
   min-width:0!important;
   table-layout:fixed!important;
-  border-collapse:collapse!important;
-  font-size:10px!important;
-}
-.pubTable.oneRow th,.pubTable.oneRow td{
-  width:auto!important;
-  min-width:0!important;
-  padding:4px 2px!important;
-  text-align:center!important;
-  white-space:nowrap!important;
-  position:static!important;
-  box-shadow:none!important;
+  border-collapse:separate!important;
 }
 .pubTable.oneRow th,
-.pubTable.oneRow .oneRowHead{
+.pubTable.oneRow td{
+  min-width:0!important;
+  width:auto!important;
+  padding:4px 2px!important;
+  text-align:center!important;
+  font-size:10px!important;
+  background:var(--btn)!important;
+}
+.pubTable.oneRow tbody td{
+  background:var(--panel)!important;
+  color:var(--text)!important;
+}
+.pubTable.oneRow tbody td.oneRowHead{
   background:var(--btn)!important;
   color:var(--sub)!important;
   font-weight:800!important;
 }
-.pubTable.oneRow td{
-  background:var(--panel)!important;
-  color:var(--text)!important;
-}
-@media(max-width:390px){
-  .pubTable.oneRow{font-size:9.5px!important}
-  .pubTable.oneRow th,.pubTable.oneRow td{padding:4px 1px!important}
-}
+
+/* Keep normal public tables as sticky-left + right-side horizontal scroll */
+.pubTable:not(.oneRow) .stickyCol{position:sticky!important;left:0!important;}
+.pubTable:not(.oneRow) th.stickyCol{background:var(--btn)!important;z-index:3!important;}
+.pubTable:not(.oneRow) td.stickyCol{background:var(--panel)!important;z-index:2!important;}
+
+/* Hide closed group totals for the low-priority detail-only groups */
+.ghead .gtotal:empty{display:none;}

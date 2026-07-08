@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v13";
+const VERSION="stage1-ui-judge-layout-v14";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -63,10 +63,10 @@ function render(){home();settings();judge()}
 function home(){let h="";for(const [k] of DISPLAY){if(!S.visible[k])continue;if(SINGLE[k])h+=row(k,SINGLE[k]);else h+=group(k)}$("homeList").innerHTML=h;dyn($("homeList"))}
 function fiveBaseControl(scope="home"){return `<div class="fiveBase ${scope}"><span>分母</span><label><input type="radio" name="fiveBase_${scope}" value="games" ${S.fiveCoinBase==="games"?"checked":""}>総G</label><label><input type="radio" name="fiveBase_${scope}" value="normalGames" ${S.fiveCoinBase==="normalGames"?"checked":""}>通常G</label></div>`}
 function row(k,it,sub=false){let v=S.data[k]||0,denomKey=(k==="fiveCoin"?S.fiveCoinBase:it.denom),r="",displayVal=`${v}${it.unit||"回"}`;if(k==="immediateYushutsu"){let den=Math.max(0,(S.data.atHit||0)-1);let pctv=den?`${trim(v/den*100,1)}%`:"0%";displayVal=pctv;r=`${v}回`;}else if(denomKey)r=rate(v,S.data[denomKey]);let cls=sub?"subrow":"row";let btn=it.game?`<button class="btn gamebtn" data-c="${k}" data-d="${S.step.plus}">＋${S.step.plus}</button><button class="btn gamebtn" data-c="${k}" data-d="-${S.step.minus}">－${S.step.minus}</button>`:`<button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button>`;let extra=k==="fiveCoin"?fiveBaseControl("home"):"";return `<div class="${cls}" data-hold="${k}"><div class="top"><div class="name">${it.label}</div><div class="value">${displayVal}</div>${btn}</div>${r?`<div class="rate">${r}</div>`:""}${extra}</div>`}
-function group(g){let d=GDEF[g],open=S.open[g]?"open":"",total=gtotal(g),body="";if(d.sections){body=d.sections.map(sec=>`<div class="sectionTitle">${sec.title}</div>`+sec.children.map(ch=>childRow(g,ch)).join("")).join("");if(g==="atSignals")body+=`<div class="caution counterCaution">※青島＆波多野は青島SPフリーズ経由を除外</div>`}else if(d.paired){body=d.children.map(([k,l])=>paired(k,l)).join("")}else{body=d.children.map(ch=>childRow(g,ch)).join("")}return `<div class="group ${open}"><button class="ghead" data-t="${g}"><span class="chev">${S.open[g]?"▼":"▶"}</span><span class="groupTitle">${d.label}</span><span class="gtotal">${total}回</span></button><div class="gbody">${body}</div></div>`}
+function group(g){let d=GDEF[g],open=S.open[g]?"open":"",total=gtotal(g),body="";if(d.sections){body=d.sections.map(sec=>`<div class="sectionTitle">${sec.title}</div>`+sec.children.map(ch=>childRow(g,ch)).join("")).join("");if(g==="atSignals")body+=`<div class="caution counterCaution">※青島＆波多野は青島SPフリーズ経由を除外</div>`}else if(d.paired){body=d.children.map(([k,l])=>paired(k,l)).join("")}else{body=d.children.map(ch=>childRow(g,ch)).join("")}let noTotal=["chargeVoice","atSignals","endingVoice","chargeItem"].includes(g);let totalHtml=noTotal?"":`<span class="gtotal">${total}回</span>`;return `<div class="group ${open}"><button class="ghead" data-t="${g}"><span class="chev">${S.open[g]?"▼":"▶"}</span><span class="groupTitle">${d.label}</span>${totalHtml}</button><div class="gbody">${body}</div></div>`}
 function childRow(g,[k,l,c]){let sub=info(g,k),note=NOTE[k],cc=c?` ${c}`:"",extra=sub?`<div class="subnote subextra">${sub}</div>`:"";return `<div class="subrow trirow" data-hold="${k}"><div class="tri"><div class="triName name${cc}">${l}</div><div class="triCount">${S.data[k]||0}回</div><div class="triNote">${note||""}</div></div><div class="subBtns"><button class="btn" data-c="${k}" data-d="1">＋</button><button class="btn" data-c="${k}" data-d="-1">－</button></div>${extra}</div>`}
 function paired(k,l){let h=S.data[k+"Hit"]||0,i=S.data[k+"Item"]||0,p=h?trim(i/h*100,1)+"%":"-";return `<div class="subrow"><div class="name">${l}</div><div class="top" data-hold="${k}Hit"><div class="name subnote">成立</div><div class="value">${h}回</div><button class="btn" data-c="${k}Hit" data-d="1">＋</button><button class="btn" data-c="${k}Hit" data-d="-1">－</button></div><div class="top" data-hold="${k}Item"><div class="name subnote">獲得</div><div class="value">${i}回</div><button class="btn" data-c="${k}Item" data-d="1">＋</button><button class="btn" data-c="${k}Item" data-d="-1">－</button></div><div class="subnote">${p}</div></div>`}
-function info(g,k){if(g==="rare")return rate(S.data[k]||0,S.data.normalGames);if(g==="rival")return pct(S.data[k]||0,S.data.atHit);if(g==="direct")return directRateText(k);return ""}
+function info(g,k){if(g==="rare")return rate(S.data[k]||0,S.data.normalGames);if(g==="rival")return pct(S.data[k]||0,S.data.atHit);if(false){}if(g==="direct")return directRateText(k);return ""}
 function directRateText(k){let map={directBoat:"boat",directWeakCherry:"weakCherry",directWeakChance:"weakChance",directStrongCherry:"strongCherry",directStrongChance:"strongChance"},base=map[k],cnt=S.data[k]||0,rare=S.data[base]||0;if(!cnt)return "";if(rare)return `直撃率 ${trim(cnt/rare*100,2)}%`;let est=estimatedRare(base);return est?`推定直撃率 ${trim(cnt/est*100,2)}%`:`推定直撃率 -`}
 function estimatedRare(base){let n=S.data.normalGames||0;if(!n)return 0;const denom={boat:99.9,weakCherry:81.9,weakChance:199.8,strongCherry:399.6,strongChance:399.6};return n/(denom[base]||1)}
 function dyn(root){root.querySelectorAll("[data-c]").forEach(b=>b.onclick=e=>{e.stopPropagation();chg(b.dataset.c,+b.dataset.d)});root.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{S.open[b.dataset.t]=!S.open[b.dataset.t];save();render()});root.querySelectorAll("input[name^='fiveBase_']").forEach(r=>r.onchange=()=>{S.fiveCoinBase=r.value;save();render()});root.querySelectorAll("[data-hold]").forEach(el=>{["touchend","touchcancel","mouseup","mouseleave"].forEach(ev=>el.addEventListener(ev,cancel));el.addEventListener("touchstart",e=>{if(e.target.tagName==="BUTTON"||e.target.tagName==="INPUT"||e.target.tagName==="LABEL")return;start(el.dataset.hold)},{passive:true});el.addEventListener("mousedown",e=>{if(e.target.tagName==="BUTTON"||e.target.tagName==="INPUT"||e.target.tagName==="LABEL")return;start(el.dataset.hold)});el.addEventListener("contextmenu",e=>e.preventDefault())})}
@@ -75,7 +75,7 @@ function start(k){cancel();hold=setTimeout(()=>promptVal(k),550)}function cancel
 function promptVal(k){let v=prompt(`${label(k)}を入力`,String(S.data[k]||0));if(v===null)return;let n=Math.max(0,Math.floor(+v));if(Number.isFinite(n)){S.data[k]=n;gameRel(k);save();render()}}
 function label(k){if(SINGLE[k])return SINGLE[k].label;for(const d of Object.values(GDEF)){let arr=d.sections?d.sections.flatMap(s=>s.children):d.children;if(d.paired){for(const [b,l] of d.children){if(k===b+"Hit")return l+" 成立";if(k===b+"Item")return l+" 獲得"}}else if(arr){for(const [x,l] of arr)if(x===k)return l}}return k}
 function gameRel(k){if(!["games","normalGames","atGames"].includes(k))return;let g=Math.max(0,S.data.games||0),n=Math.max(0,S.data.normalGames||0),at=Math.max(0,S.data.atGames||0);if(k==="normalGames"){n=Math.min(n,g);if(n+at>g)at=Math.max(0,g-n);}else if(k==="atGames"){at=Math.min(at,g);if(n+at>g)n=Math.max(0,g-at);}else if(k==="games"){n=Math.min(n,g);at=Math.min(at,Math.max(0,g-n));}S.data.games=g;S.data.normalGames=n;S.data.atGames=at;}
-function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus;let note=document.getElementById("rareNoteBox");if(!note){let box=document.createElement("div");box.id="rareNoteBox";box.className="list helpBox";box.innerHTML=`<p class="helpStrong">※各カウンターは長押しすると直接数値を入力できます。</p><div class="helpTitle">【レア小役について】</div><p>AT直撃率を正確に算出するために使用します。</p><p>入力しない場合は、通常ゲーム数と公表確率から推定直撃率を表示します。</p>`;let main=document.querySelector("#settings main");main.insertBefore(box,main.firstElementChild)}}
+function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus;let old=document.getElementById("rareNoteBox");if(old)old.remove();let box=document.createElement("div");box.id="rareNoteBox";box.className="list helpBox";box.innerHTML=`<p class="holdHelp"><strong>※各カウンターは長押しすると直接数値を入力できます。</strong></p><div class="helpTitle">【レア小役について】</div><p>AT直撃率を正確に算出するために使用します。</p><p>入力しない場合は、通常ゲーム数と公表確率から推定直撃率を表示します。</p>`;$("settingList").insertAdjacentElement("beforebegin",box)}
 function judge(){$("impactToggle").checked=!!S.showImpact;bars();signals();jitems()}
 function probs(){let sc=Object.fromEntries(SETS.map(s=>[s,1]));if(S.visible.atHit&&S.judgeUse.atHit)pois(sc,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,.45);if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)pois(sc,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,.55);if(S.visible.direct&&S.judgeUse.direct)applyDirect(sc);let allow=allowed();let hasRestrict=allow.length<SETS.length;SETS.forEach(s=>{if(!allow.includes(s))sc[s]=0});let sum=Object.values(sc).reduce((a,b)=>a+b,0)||1;let raw=Object.fromEntries(SETS.map(s=>[s,sc[s]/sum*100]));return hasRestrict?round(raw):floorRound(raw,1)}
 function pois(sc,c,den,vals,w){if(!c||!den)return;for(const s of SETS){let p=1/vals[s],exp=den*p;let score=Math.exp(-Math.pow(c-exp,2)/(2*Math.max(1,exp)))*Math.pow(Math.max(.0001,p),c*w);sc[s]*=Math.max(.000001,score)}}
@@ -96,44 +96,45 @@ function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",
   title=inf.label;let n=rv!==null?nearestPct(rv,inf.values):"-";main=rv!==null?`${trim(rv,1)}%（${n}）`:"0%";near="";
   pub=publicOneRowTable(Object.fromEntries(Object.entries(inf.values).map(([set,val])=>[set,`${val}%`])));
  }else{
-  title=GDEF[k].label;main=gtotal(k)?`${gtotal(k)}回`:"-";pub=gtext(k)
+  title=GDEF[k].label;
+  if(k==="chargeVoice") main=hatanoRatioText();
+  else if(k==="endingVoice") main=endingNonDefaultTotal()?`${endingNonDefaultTotal()}回`:"-";
+  else main=gtotal(k)?`${gtotal(k)}回`:"-";
+  pub=gtext(k)
  }
  let imp=S.showImpact?`<div class="starImpact">影響度 ${impactStars(k)}</div>`:"";
  return `<div class="jitem"><div class="jsum" data-open="${k}"><input type="checkbox" data-use="${k}" ${checked}><div><div class="jtitle">${title}</div><div class="jrate">${main}</div><div class="near">${near}</div>${imp}</div><div class="chev">▼</div></div><div class="pub">${pub}</div></div>`}
-function detailLine(l,cnt,note,cls="",pct=""){let pctHtml=pct?`<div class="pubPct">${pct}</div>`:"";return `<div class="pubTri"><div class="pubName ${cls}">${l}</div><div class="pubNote">${note||""}</div><div class="pubCount"><div>${cnt}回</div>${pctHtml}</div></div>`}
+function detailLine(l,cnt,note,cls="",sub=""){return `<div class="pubTri"><div class="pubName ${cls}">${l}</div><div class="pubNote">${note||""}</div><div class="pubCount">${cnt}回${sub?`<div class="pubSubPct">${sub}</div>`:""}</div></div>`}
 function detailRows(rows){return `<div class="pubRows">${rows.join("")}</div>`}
 function pubFold(title,body){return `<details class="pubFold"><summary>${title}</summary><div class="pubFoldBody">${body}</div></details>`}
 function publicList(rows){return `<div class="publicList">${rows.map(r=>`<div>${r}</div>`).join("")}</div>`}
 function publicTable(rows){const heads=["項目","設定1","設定2","設定4","設定5","設定6"];return `<div class="pubTableWrap"><table class="pubTable"><thead><tr>${heads.map((h,i)=>`<th class="${i===0?"stickyCol":""}">${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"left stickyCol":"num"}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
-function publicOneRowTable(vals){const heads=[1,2,4,5,6];return `<div class="pubTableWrap oneRowWrap"><table class="pubTable oneRow"><thead><tr><th class="oneRowHead">公表値</th>${heads.map(s=>`<th>設定${s}</th>`).join("")}</tr></thead><tbody><tr><th class="oneRowHead">数値</th>${heads.map(s=>`<td class="num">${vals[s]||"-"}</td>`).join("")}</tr></tbody></table></div>`}
+function publicOneRowTable(vals){const heads=[1,2,4,5,6];return `<div class="pubTableWrap oneRowWrap"><table class="pubTable oneRow"><thead><tr><th>公表値</th>${heads.map(s=>`<th>設定${s}</th>`).join("")}</tr></thead><tbody><tr><td class="oneRowHead">数値</td>${heads.map(s=>`<td class="num">${vals[s]||"-"}</td>`).join("")}</tr></tbody></table></div>`}
 function publicBlock(title,rows){return `<div class="pubTableBlock"><div class="pubTableTitle">${title}</div>${publicTable(rows)}</div>`}
-function pctText(cnt,den,prefix=""){return den?`${prefix}${trim(cnt/den*100,1)}%`:"-"}
-function hatanoPct(k){let den=(S.data.voiceCalm||0)+(S.data.voiceSign||0);return pctText(S.data[k]||0,den)}
-function endingPct(k){let den=flatChildren(GDEF.endingVoice).reduce((a,[x])=>a+(S.data[x]||0),0);return pctText(S.data[k]||0,den)}
-function directPct(k){let map={directBoat:"boat",directWeakCherry:"weakCherry",directWeakChance:"weakChance",directStrongCherry:"strongCherry",directStrongChance:"strongChance"},base=map[k],cnt=S.data[k]||0,rare=S.data[base]||0;if(rare)return pctText(cnt,rare);let est=estimatedRare(base);return est?pctText(cnt,est,"推定"):"-"}
-function chargeItemPct(k){let map={chargeWeakCherry:"weakCherry",chargeStrongCherry:"strongCherry",chargeWeakChance:"weakChance",chargeStrongChance:"strongChance",chargeBoat:"boat"};return pctText(S.data[k+"Item"]||0,S.data[map[k]]||0)}
 function gtext(g){
  if(g==="direct")return directPublicText();
  if(g==="chargeVoice"){
+  let den=(S.data.voiceCalm||0)+(S.data.voiceSign||0);
+  let top=`<div class="pubRatio"><div class="pubRatioMain">${hatanoRatioText()}</div><div class="pubRatioSub">（落ち着くんだ…：この気配は!?）</div></div>`;
   let rows=detailRows([
-   detailLine("波多野「落ち着くんだ…」",S.data.voiceCalm||0,"","",hatanoPct("voiceCalm")),
-   detailLine("波多野「この気配は！？」",S.data.voiceSign||0,"","",hatanoPct("voiceSign")),
+   detailLine("波多野「落ち着くんだ…」",S.data.voiceCalm||0,"","",den?pctText(S.data.voiceCalm||0,den):""),
+   detailLine("波多野「この気配は!?」",S.data.voiceSign||0,"","",den?pctText(S.data.voiceSign||0,den):""),
    detailLine("榎木「おつかれ」",S.data.voiceOtsukare||0,"偶数濃厚","red"),
    detailLine("榎木「これが艇王と…」",S.data.voiceTeio||0,"設定4以上","red")
   ]);
   let pv=publicBlock("波多野",[
    ["落ち着くんだ…","50.0%","40.0%","40.0%","70.0%","40.0%"],
-   ["この気配は！？","50.0%","60.0%","60.0%","30.0%","60.0%"]
+   ["この気配は!?","50.0%","60.0%","60.0%","30.0%","60.0%"]
   ])+publicBlock("榎木",[
    ["おつかれ","-","0.75%","0.75%","-","1.25%"],
    ["これが艇王と…","-","-","0.25%","0.50%","0.25%"]
   ]);
-  return rows+pubFold("公表値",pv)
+  return top+rows+pubFold("公表値",pv)
  }
  if(g==="atSignals")return sectionPublicText(g);
- if(g==="endingVoice")return detailRows(GDEF.endingVoice.children.map(([k,l,c])=>{let pct=["endOtsukare","endTeio","endKitakita","endOmedeto"].includes(k)?endingPct(k):"";return detailLine(l,S.data[k]||0,NOTE[k],c||"",pct)}))+pubFold("公表値",endingPublic());
+ if(g==="endingVoice"){let den=endingTotal();let pctKeys=new Set(["endOtsukare","endTeio","endKitakita","endOmedeto"]);return detailRows(GDEF.endingVoice.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"",pctKeys.has(k)&&den?pctText(S.data[k]||0,den):"")))+pubFold("公表値",endingPublic());}
  if(g==="chargeItem")return pairPublicText(g);
- if(g==="rival"){let rows=detailRows(GDEF.rival.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"",pctText(S.data[k]||0,S.data.atHit||0))));let pv=publicTable([
+ if(g==="rival"){let rows=detailRows(GDEF.rival.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"",S.data.atHit?pctText(S.data[k]||0,S.data.atHit):"")));let pv=publicTable([
  ["榎木","7.8%","8.2%","9.4%","10.5%","10.9%"],
  ["蒲生","7.8%","8.6%","10.9%","14.1%","15.6%"],
  ["浜岡","7.8%","8.2%","9.4%","10.5%","10.9%"],
@@ -144,7 +145,7 @@ function gtext(g){
  ["金","-","-","0.2%","0.5%","0.3%"],
  ["虹","-","-","-","-","0.1%"]
 ]);return rows+pubFold("公表値",pv)}
- if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"",k==="medalBlack"?pctText(S.data[k]||0,S.data.atHit||0):"")));let pv=publicBlock("黒メダル",[
+ if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"",k==="medalBlack"&&S.data.atHit?pctText(S.data[k]||0,S.data.atHit):"")));let pv=publicBlock("黒メダル",[
  ["出現率","1.25%","1.5%","4.0%","4.5%","4.5%"]
 ])+publicBlock("黒メダル後",[
  ["青メダル","50.0%","45.0%","37.5%","25.0%","37.5%"],
@@ -176,23 +177,29 @@ function sectionPublicText(g){let rows=GDEF[g].sections.map(sec=>`<div class="pu
  ["青島＆波多野","-","-","-","5.2%","4.5%"]
 ]);return rows+pubFold("公表値",pv)}
 function directPublicText(){let rows=detailRows([
- detailLine("ボート",S.data.directBoat||0,"設定4以上","",directPct("directBoat")),
- detailLine("弱チェリー",S.data.directWeakCherry||0,"設定4以上","",directPct("directWeakCherry")),
- detailLine("弱チャンス目",S.data.directWeakChance||0,"設定4以上","",directPct("directWeakChance")),
- detailLine("強チェリー",S.data.directStrongCherry||0,"","",directPct("directStrongCherry")),
- detailLine("強チャンス目",S.data.directStrongChance||0,"","",directPct("directStrongChance"))
+ detailLine("ボート",S.data.directBoat||0,"設定4以上","",directPct("directBoat","boat")),
+ detailLine("弱チェリー",S.data.directWeakCherry||0,"設定4以上","",directPct("directWeakCherry","weakCherry")),
+ detailLine("弱チャンス目",S.data.directWeakChance||0,"設定4以上","",directPct("directWeakChance","weakChance")),
+ detailLine("強チェリー",S.data.directStrongCherry||0,"","",directPct("directStrongCherry","strongCherry")),
+ detailLine("強チャンス目",S.data.directStrongChance||0,"","",directPct("directStrongChance","strongChance"))
 ]);let pv=publicTable([
  ["ボート・弱チェリー","-","-","0.4%","2.0%","3.1%"],
  ["弱チャンス目","-","-","0.8%","2.0%","3.1%"],
  ["強チェリー・強チャンス目","0.4%","1.2%","2.0%","3.9%","6.3%"]
 ]);return rows+pubFold("公表値",pv)}
-function pairPublicText(g){let d=GDEF[g];let rows=detailRows(d.children.map(([b,l])=>detailLine(l,S.data[b+"Item"]||0,"","",chargeItemPct(b))));if(g==="chargeItem"){let pv=publicTable([
+function pairPublicText(g){let d=GDEF[g];let rows=detailRows(d.children.map(([b,l])=>{let h=S.data[b+"Hit"]||0,i=S.data[b+"Item"]||0,p=h?trim(i/h*100,1)+"%":"";return detailLine(l,i,"","",p)}));if(g==="chargeItem"){let pv=publicTable([
  ["ボート","25.0%","26.2%","32.8%","39.1%","43.0%"],
  ["弱チェリー","31.3%","32.0%","37.5%","40.6%","46.9%"],
  ["弱チャンス目","50.0%","50.8%","58.6%","62.5%","66.4%"],
  ["強チェリー","100%","100%","100%","100%","100%"],
  ["強チャンス目","100%","100%","100%","100%","100%"]
 ]);return rows+pubFold("公表値",pv)}return rows}
+
+function pctText(c,d){return d?`${trim((c||0)/d*100,1)}%`:""}
+function hatanoRatioText(){let a=S.data.voiceCalm||0,b=S.data.voiceSign||0,t=a+b;if(!t)return "-";let x=Math.round(a/t*100);return `${x}：${100-x}`}
+function endingTotal(){return GDEF.endingVoice.children.reduce((a,[k])=>a+(S.data[k]||0),0)}
+function endingNonDefaultTotal(){return GDEF.endingVoice.children.filter(([k])=>k!=="endIkeryze").reduce((a,[k])=>a+(S.data[k]||0),0)}
+function directPct(directKey,rareKey){let cnt=S.data[directKey]||0,base=S.data[rareKey]||0;if(base)return pctText(cnt,base);let est=estimatedRare(rareKey);return est?pctText(cnt,est):""}
 function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function nearestPct(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
