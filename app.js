@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v10";
+const VERSION="stage1-ui-judge-layout-v11";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -75,7 +75,7 @@ function start(k){cancel();hold=setTimeout(()=>promptVal(k),550)}function cancel
 function promptVal(k){let v=prompt(`${label(k)}を入力`,String(S.data[k]||0));if(v===null)return;let n=Math.max(0,Math.floor(+v));if(Number.isFinite(n)){S.data[k]=n;gameRel(k);save();render()}}
 function label(k){if(SINGLE[k])return SINGLE[k].label;for(const d of Object.values(GDEF)){let arr=d.sections?d.sections.flatMap(s=>s.children):d.children;if(d.paired){for(const [b,l] of d.children){if(k===b+"Hit")return l+" 成立";if(k===b+"Item")return l+" 獲得"}}else if(arr){for(const [x,l] of arr)if(x===k)return l}}return k}
 function gameRel(k){if(!["games","normalGames","atGames"].includes(k))return;let g=Math.max(0,S.data.games||0),n=Math.max(0,S.data.normalGames||0),at=Math.max(0,S.data.atGames||0);if(k==="normalGames"){n=Math.min(n,g);if(n+at>g)at=Math.max(0,g-n);}else if(k==="atGames"){at=Math.min(at,g);if(n+at>g)n=Math.max(0,g-at);}else if(k==="games"){n=Math.min(n,g);at=Math.min(at,Math.max(0,g-n));}S.data.games=g;S.data.normalGames=n;S.data.atGames=at;}
-function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus}
+function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus;let note=document.getElementById("rareNoteBox");if(!note){let box=document.createElement("div");box.id="rareNoteBox";box.className="list helpBox";box.innerHTML=`<div class="helpTitle">レア小役について</div><p>AT直撃率を正確に算出するために使用します。</p><p>入力しない場合は、通常ゲーム数と公表確率から推定直撃率を表示します。</p>`;$("settingList").insertAdjacentElement("afterend",box)}}
 function judge(){$("impactToggle").checked=!!S.showImpact;bars();signals();jitems()}
 function probs(){let sc=Object.fromEntries(SETS.map(s=>[s,1]));if(S.visible.atHit&&S.judgeUse.atHit)pois(sc,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,.45);if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)pois(sc,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,.55);if(S.visible.direct&&S.judgeUse.direct)applyDirect(sc);let allow=allowed();let hasRestrict=allow.length<SETS.length;SETS.forEach(s=>{if(!allow.includes(s))sc[s]=0});let sum=Object.values(sc).reduce((a,b)=>a+b,0)||1;let raw=Object.fromEntries(SETS.map(s=>[s,sc[s]/sum*100]));return hasRestrict?round(raw):floorRound(raw,1)}
 function pois(sc,c,den,vals,w){if(!c||!den)return;for(const s of SETS){let p=1/vals[s],exp=den*p;let score=Math.exp(-Math.pow(c-exp,2)/(2*Math.max(1,exp)))*Math.pow(Math.max(.0001,p),c*w);sc[s]*=Math.max(.000001,score)}}
@@ -104,8 +104,9 @@ function detailLine(l,cnt,note,cls=""){return `<div class="pubTri"><div class="p
 function detailRows(rows){return `<div class="pubRows">${rows.join("")}</div>`}
 function pubFold(title,body){return `<details class="pubFold"><summary>${title}</summary><div class="pubFoldBody">${body}</div></details>`}
 function publicList(rows){return `<div class="publicList">${rows.map(r=>`<div>${r}</div>`).join("")}</div>`}
-function publicTable(rows){const heads=["項目","設定1","設定2","設定4","設定5","設定6"];return `<div class="pubTableWrap"><table class="pubTable"><thead><tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"left":"num"}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
-function publicOneRowTable(vals){const heads=[1,2,4,5,6];return `<div class="pubTableWrap"><table class="pubTable oneRow"><thead><tr>${heads.map(s=>`<th>設定${s}</th>`).join("")}</tr></thead><tbody><tr>${heads.map(s=>`<td class="num">${vals[s]||"-"}</td>`).join("")}</tr></tbody></table></div>`}
+function publicTable(rows){const heads=["項目","設定1","設定2","設定4","設定5","設定6"];return `<div class="pubTableWrap"><table class="pubTable"><thead><tr>${heads.map((h,i)=>`<th class="${i===0?"stickyCol":""}">${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${i===0?"left stickyCol":"num"}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`}
+function publicOneRowTable(vals){const heads=[1,2,4,5,6];return `<div class="pubTableWrap oneRowWrap"><table class="pubTable oneRow"><thead><tr>${heads.map(s=>`<th>設定${s}</th>`).join("")}</tr></thead><tbody><tr>${heads.map(s=>`<td class="num">${vals[s]||"-"}</td>`).join("")}</tr></tbody></table></div>`}
+function publicBlock(title,rows){return `<div class="pubTableBlock"><div class="pubTableTitle">${title}</div>${publicTable(rows)}</div>`}
 function gtext(g){
  if(g==="direct")return directPublicText();
  if(g==="chargeVoice"){
@@ -117,8 +118,10 @@ function gtext(g){
    detailLine("榎木「これが艇王と…」",S.data.voiceTeio||0,"設定4以上","red")
   ]);
   let pv=publicTable([
+   ["波多野 落ち着くんだ…","50.0%","40.0%","40.0%","70.0%","40.0%"],
+   ["波多野 この気配は！？","50.0%","60.0%","60.0%","30.0%","60.0%"],
    ["榎木 おつかれ","-","0.75%","0.75%","-","1.25%"],
-   ["榎木 これが艇王と…","-","-","0.25%","0.25%","0.25%"]
+   ["榎木 これが艇王と…","-","-","0.25%","0.50%","0.25%"]
   ]);
   return ratio+rows+pubFold("公表値",pv)
  }
@@ -136,20 +139,22 @@ function gtext(g){
  ["金","-","-","0.2%","0.5%","0.3%"],
  ["虹","-","-","-","-","0.1%"]
 ]);return rows+pubFold("公表値",pv)}
- if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
- ["黒メダル","1.25%","1.5%","4.0%","4.5%","4.5%"],
- ["黒後 青","50.0%","45.0%","37.5%","25.0%","37.5%"],
- ["黒後 黄","50.0%","30.0%","37.5%","50.0%","37.5%"]
+ if(g==="medal"){let rows=detailRows(GDEF.medal.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicBlock("黒メダル",[
+ ["出現率","1.25%","1.5%","4.0%","4.5%","4.5%"]
+])+publicBlock("黒メダル後",[
+ ["青メダル","50.0%","45.0%","37.5%","25.0%","37.5%"],
+ ["黄メダル","50.0%","30.0%","37.5%","50.0%","37.5%"]
 ]);return rows+pubFold("公表値",pv)}
  if(g==="trophy"){let rows=detailRows(GDEF.trophy.children.map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));let pv=publicTable([
- ["銅 通常","-","5.0%","3.4%","3.4%","3.5%"],
- ["金 通常","-","-","4.4%","3.6%","3.9%"],
- ["ケロット 通常","-","-","-","2.1%","1.6%"],
- ["虹 通常","-","-","-","-","0.8%"],
- ["銅 黒後","-","25.0%","12.5%","10.0%","10.0%"],
- ["金 黒後","-","-","12.5%","11.25%","11.0%"],
- ["ケロット 黒後","-","-","-","3.75%","3.0%"],
- ["虹 黒後","-","-","-","-","1.0%"]
+ ["銅","-","5.0%","3.4%","3.4%","3.5%"],
+ ["金","-","-","4.4%","3.6%","3.9%"],
+ ["ケロット","-","-","-","2.1%","1.6%"],
+ ["虹","-","-","-","-","0.8%"]
+])+publicBlock("黒メダル後",[
+ ["銅","-","25.0%","12.5%","10.0%","10.0%"],
+ ["金","-","-","12.5%","11.25%","11.0%"],
+ ["ケロット","-","-","-","3.75%","3.0%"],
+ ["虹","-","-","-","-","1.0%"]
 ]);return rows+pubFold("公表値",pv)}
  let d=GDEF[g];if(d.paired)return pairPublicText(g);let rows=detailRows(flatChildren(d).map(([k,l,c])=>detailLine(l,S.data[k]||0,NOTE[k],c||"")));return rows
 }
