@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v16-bayes";
+const VERSION="stage1-ui-judge-layout-v17-bayes-tempered";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -99,11 +99,37 @@ function fiveCoinWeight(){let g=S.data[S.fiveCoinBase]||0;return clamp(20+(g/150
 function weightByCount(c,vals){if(c<=0)return vals[0];if(c===1)return vals[1];if(c===2)return vals[2];return vals[3]??vals[2]}
 function softmax(log){let max=Math.max(...SETS.map(s=>log[s]));let ex=Object.fromEntries(SETS.map(s=>[s,Math.exp(log[s]-max)]));let sum=Object.values(ex).reduce((a,b)=>a+b,0)||1;return Object.fromEntries(SETS.map(s=>[s,ex[s]/sum*100]))}
 function addLog(log,s,val){if(Number.isFinite(val))log[s]+=val}
-function bayesBinom(log,c,n,probBySet,w){if(!n||w<=0)return;for(const s of SETS){let p=probBySet[s];if(p==null)return;p=Math.max(1e-6,Math.min(1-1e-6,p));addLog(log,s,w*(c*Math.log(p)+(n-c)*Math.log(1-p)))}}
-function bayesBinomDenom(log,c,n,denomBySet,w){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w)}
-function bayesMult(log,counts,probRows,w){if(w<=0)return;for(const s of SETS){let ll=0;for(const [key,probBySet] of probRows){let c=counts[key]||0;if(!c)continue;let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));ll+=c*Math.log(p)}addLog(log,s,w*ll)}}
+function addWeightedLL(log,llBySet,w,capSpread=0){
+ if(w<=0)return;
+ let vals=SETS.map(s=>llBySet[s]||0);
+ let mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+ let contrib=Object.fromEntries(SETS.map(s=>[s,w*((llBySet[s]||0)-mean)]));
+ if(capSpread>0){
+  let max=Math.max(...SETS.map(s=>contrib[s])),min=Math.min(...SETS.map(s=>contrib[s]));
+  let spread=max-min;
+  if(spread>capSpread){
+   let scale=capSpread/spread;
+   for(const s of SETS)contrib[s]*=scale;
+  }
+ }
+ for(const s of SETS)addLog(log,s,contrib[s]);
+}
+function bayesBinom(log,c,n,probBySet,w,capSpread=0){
+ if(!n||w<=0)return;
+ let ll={};
+ for(const s of SETS){let p=probBySet[s];if(p==null)return;p=Math.max(1e-6,Math.min(1-1e-6,p));ll[s]=c*Math.log(p)+(n-c)*Math.log(1-p)}
+ addWeightedLL(log,ll,w,capSpread);
+}
+function bayesBinomDenom(log,c,n,denomBySet,w,capSpread=0){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w,capSpread)}
+function bayesMult(log,counts,probRows,w,capSpread=0){
+ if(w<=0)return;
+ let ll={};
+ for(const s of SETS){ll[s]=0;for(const [key,probBySet] of probRows){let c=counts[key]||0;if(!c)continue;let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));ll[s]+=c*Math.log(p)}}
+ addWeightedLL(log,ll,w,capSpread);
+}
 function pctMap(o){let m={};for(const [s,v] of Object.entries(o))m[s]=v/100;return m}
-function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(!n)return;let w=weightByCount(c,{0:5,1:50,2:80,3:90})/100;bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),w)}
+const RARE_CAP=Math.log(4); // レア事象系が1項目だけで振り切れすぎないよう、1項目内の更新幅を抑える
+function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(!n)return;let w=weightByCount(c,{0:5,1:50,2:80,3:90})/100;bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),w,RARE_CAP)}
 function applyDirect(log){
  const pairs=[
   ['directBoat','boat',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1}),'weak'],
@@ -112,19 +138,19 @@ function applyDirect(log){
   ['directStrongCherry','strongCherry',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong'],
   ['directStrongChance','strongChance',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong']
  ];
- for(const [dk,rk,prob,type] of pairs){let c=S.data[dk]||0;let n=S.data[rk]||estimatedRare(rk);if(!n)continue;let w=(type==='weak'?weightByCount(c,{0:5,1:80,2:95,3:95}):weightByCount(c,{0:5,1:40,2:65,3:80}))/100;bayesBinom(log,c,n,prob,w)}
+ for(const [dk,rk,prob,type] of pairs){let c=S.data[dk]||0;let n=S.data[rk]||estimatedRare(rk);if(!n)continue;let w=(type==='weak'?weightByCount(c,{0:5,1:80,2:95,3:95}):weightByCount(c,{0:5,1:40,2:65,3:80}))/100;bayesBinom(log,c,n,prob,w,RARE_CAP)}
 }
-function applyMedal(log){let c=S.data.medalBlack||0,n=S.data.atHit||0;if(n){let w=weightByCount(c,{0:5,1:20,2:40,3:40})/100;bayesBinom(log,c,n,pctMap({1:1.25,2:1.5,4:4.0,5:4.5,6:4.5}),w)}
+function applyMedal(log){let c=S.data.medalBlack||0,n=S.data.atHit||0;if(n){let w=weightByCount(c,{0:5,1:20,2:40,3:40})/100;bayesBinom(log,c,n,pctMap({1:1.25,2:1.5,4:4.0,5:4.5,6:4.5}),w,RARE_CAP)}
  // 青・黄は通常出現率が不明なため、通常判別には入れない。
 }
 function applyTrophy(log){let counts={bronze:S.data.trophyBronze||0,gold:S.data.trophyGold||0,kerot:S.data.trophyKerot||0,rainbow:S.data.trophyRainbow||0};let rows=[
  ['bronze',pctMap({1:0.0001,2:5.0,4:3.4,5:3.4,6:3.5})],
  ['gold',pctMap({1:0.0001,2:0.0001,4:4.4,5:3.6,6:3.9})],
  ['kerot',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.1,6:1.6})]
-];bayesMult(log,counts,rows,0.6)}
+];bayesMult(log,counts,rows,0.6,RARE_CAP)}
 function applyChargeVoice(log){let a=S.data.voiceCalm||0,b=S.data.voiceSign||0;if(a+b){bayesMult(log,{calm:a,sign:b},[
  ['calm',pctMap({1:50,2:40,4:40,5:70,6:40})],['sign',pctMap({1:50,2:60,4:60,5:30,6:60})]
-],0.4)}}
+],0.4,RARE_CAP)}}
 function applyChargeItem(log){
  const defs=[
   ['chargeBoat','boat',pctMap({1:25.0,2:26.2,4:32.8,5:39.1,6:43.0}),0.50],
@@ -133,14 +159,14 @@ function applyChargeItem(log){
   ['chargeStrongCherry','strongCherry',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40],
   ['chargeStrongChance','strongChance',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40]
  ];
- for(const [base,rare,prob,w] of defs){let c=S.data[base+'Item']||0,n=S.data[rare]||S.data[base+'Hit']||0;if(!n)continue;bayesBinom(log,c,n,prob,w)}
+ for(const [base,rare,prob,w] of defs){let c=S.data[base+'Item']||0,n=S.data[rare]||S.data[base+'Hit']||0;if(!n)continue;bayesBinom(log,c,n,prob,w,RARE_CAP)}
 }
 function applyRival(log){let n=S.data.atHit||0;if(!n)return;let rows=[
  ['rivalEnoki',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})],
  ['rivalGamo',pctMap({1:7.8,2:8.6,4:10.9,5:14.1,6:15.6})],
  ['rivalHamaoka',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})]
-];for(const [key,prob] of rows)bayesBinom(log,S.data[key]||0,n,prob,0.20)}
-function applyRoundSignals(log){let n=Math.max(1,S.data.atHit||0);bayesBinom(log,S.data.roundDress||0,n,pctMap({1:20.0,2:25.0,4:35.0,5:39.0,6:39.0}),0.30);bayesBinom(log,S.data.roundAoshimaHatano||0,n,pctMap({1:0.0001,2:0.0001,4:0.0001,5:5.2,6:4.5}),0.30)}
+];for(const [key,prob] of rows)bayesBinom(log,S.data[key]||0,n,prob,0.20,RARE_CAP)}
+function applyRoundSignals(log){let n=Math.max(1,S.data.atHit||0);bayesBinom(log,S.data.roundDress||0,n,pctMap({1:20.0,2:25.0,4:35.0,5:39.0,6:39.0}),0.30,RARE_CAP);bayesBinom(log,S.data.roundAoshimaHatano||0,n,pctMap({1:0.0001,2:0.0001,4:0.0001,5:5.2,6:4.5}),0.30,RARE_CAP)}
 function applyEnding(log){let total=endingTotal();if(!total)return;let rows=[
  ['endIkuyo',pctMap({1:10,2:15,4:15,5:10,6:15})],
  ['endIiKanji',pctMap({1:10,2:10,4:15,5:15,6:15})],
@@ -148,7 +174,7 @@ function applyEnding(log){let total=endingTotal();if(!total)return;let rows=[
  ['endOtsukare',pctMap({1:0.0001,2:2.5,4:2.5,5:0.0001,6:1.25})],
  ['endTeio',pctMap({1:0.0001,2:0.0001,4:2.5,5:2.5,6:1.25})],
  ['endKitakita',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.5,6:1.25})]
-];bayesMult(log,Object.fromEntries(GDEF.endingVoice.children.map(([k])=>[k,S.data[k]||0])),rows,0.40)}
+];bayesMult(log,Object.fromEntries(GDEF.endingVoice.children.map(([k])=>[k,S.data[k]||0])),rows,0.40,RARE_CAP)}
 function allowed(){let a=[...SETS];const ge=n=>a=a.filter(s=>s>=n),only=n=>a=a.filter(s=>s===n),even=()=>a=a.filter(s=>s===2||s===4||s===6);if(S.data.trophyBronze)ge(2);if(S.data.trophyGold||S.data.ticketGold||S.data.voiceTeio||S.data.endTeio||S.data.over456||S.data.directBoat||S.data.directWeakCherry||S.data.directWeakChance)ge(4);if(S.data.trophyKerot||S.data.over803||S.data.roundBoatKerot||S.data.roundAoshimaHatano||S.data.endKitakita)ge(5);if(S.data.trophyRainbow||S.data.ticketRainbow||S.data.over666||S.data.endOmedeto)only(6);if(S.data.ticketSilver||S.data.voiceOtsukare||S.data.endOtsukare)even();return a.length?a:SETS}
 function floorRound(raw,floorPct){const keys=Object.keys(raw);let out={},fixed=0,flex=[];for(const k of keys){if(raw[k]<=0)out[k]=0;else{out[k]=floorPct;fixed+=floorPct;flex.push(k)}}const remain=Math.max(0,100-fixed),rawSum=flex.reduce((a,k)=>a+raw[k],0)||1;flex.forEach(k=>out[k]+=raw[k]/rawSum*remain);let rounded=round(out),need=0;for(const k of flex){if(rounded[k]<floorPct){need+=floorPct-rounded[k];rounded[k]=floorPct}}while(need>0){let c=flex.filter(k=>rounded[k]>floorPct);if(!c.length)break;let m=c.sort((a,b)=>rounded[b]-rounded[a])[0];rounded[m]-=1;need--}return rounded}
 function round(raw){let e=Object.entries(raw).map(([k,v])=>({k,f:Math.floor(v),r:v-Math.floor(v)}));let s=e.reduce((a,x)=>a+x.f,0);e.sort((a,b)=>b.r-a.r);for(let i=0;s<100&&i<e.length;i++,s++)e[i].f++;e.sort((a,b)=>+a.k-+b.k);return Object.fromEntries(e.map(x=>[x.k,x.f]))}
