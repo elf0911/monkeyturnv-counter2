@@ -1,4 +1,4 @@
-const VERSION="stage1-ui-judge-layout-v17-bayes-tempered";
+const VERSION="stage1-ui-judge-layout-v18-itemwise-bayes";
 const STORAGE_KEY="monkeyturnv-counter-stage1-ui";
 const SETS=[1,2,4,5,6];
 
@@ -114,21 +114,40 @@ function addWeightedLL(log,llBySet,w,capSpread=0){
  }
  for(const s of SETS)addLog(log,s,contrib[s]);
 }
-function bayesBinom(log,c,n,probBySet,w,capSpread=0){
+// v18: 各項目は「回数分の連続更新」ではなく、実測値を1つの判別材料として1回だけ評価する。
+function bayesBinom(log,c,n,probBySet,w,capSpread=Math.log(6)){
  if(!n||w<=0)return;
+ const obs=Math.max(0,Math.min(1,c/n));
+ const ps=SETS.map(s=>Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0)));
+ const avg=ps.reduce((a,b)=>a+b,0)/ps.length;
+ const spread=Math.max(...ps)-Math.min(...ps);
+ // サンプル数による確信は少しだけ使うが、項目の重要度が主役。5枚役などの暴れを抑える。
+ const se=Math.sqrt(Math.max(avg*(1-avg),1e-6)/Math.max(n,1));
+ const sigma=Math.max(spread*0.75,se*2.0,0.002);
  let ll={};
- for(const s of SETS){let p=probBySet[s];if(p==null)return;p=Math.max(1e-6,Math.min(1-1e-6,p));ll[s]=c*Math.log(p)+(n-c)*Math.log(1-p)}
+ for(const s of SETS){let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));let z=(obs-p)/sigma;ll[s]=-0.5*z*z}
  addWeightedLL(log,ll,w,capSpread);
 }
-function bayesBinomDenom(log,c,n,denomBySet,w,capSpread=0){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w,capSpread)}
-function bayesMult(log,counts,probRows,w,capSpread=0){
+function bayesBinomDenom(log,c,n,denomBySet,w,capSpread=Math.log(6)){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w,capSpread)}
+function bayesMult(log,counts,probRows,w,capSpread=Math.log(6)){
  if(w<=0)return;
+ const total=Object.values(counts).reduce((a,b)=>a+(b||0),0);
+ if(!total)return;
+ // 出現分布を1つの材料として評価。回数で尤度を掛け続けない。
  let ll={};
- for(const s of SETS){ll[s]=0;for(const [key,probBySet] of probRows){let c=counts[key]||0;if(!c)continue;let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));ll[s]+=c*Math.log(p)}}
+ for(const s of SETS){
+  ll[s]=0;
+  for(const [key,probBySet] of probRows){
+   let share=(counts[key]||0)/total;
+   if(!share)continue;
+   let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));
+   ll[s]+=share*Math.log(p);
+  }
+ }
  addWeightedLL(log,ll,w,capSpread);
 }
 function pctMap(o){let m={};for(const [s,v] of Object.entries(o))m[s]=v/100;return m}
-const RARE_CAP=Math.log(4); // レア事象系が1項目だけで振り切れすぎないよう、1項目内の更新幅を抑える
+const RARE_CAP=Math.log(3); // レア事象系は1項目だけで振り切れすぎないよう更新幅を抑える
 function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(!n)return;let w=weightByCount(c,{0:5,1:50,2:80,3:90})/100;bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),w,RARE_CAP)}
 function applyDirect(log){
  const pairs=[
