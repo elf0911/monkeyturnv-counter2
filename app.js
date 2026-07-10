@@ -77,26 +77,41 @@ function label(k){if(SINGLE[k])return SINGLE[k].label;for(const d of Object.valu
 function gameRel(k){if(!["games","normalGames","atGames"].includes(k))return;let g=Math.max(0,S.data.games||0),n=Math.max(0,S.data.normalGames||0),at=Math.max(0,S.data.atGames||0);if(k==="normalGames"){n=Math.min(n,g);if(n+at>g)at=Math.max(0,g-n);}else if(k==="atGames"){at=Math.min(at,g);if(n+at>g)n=Math.max(0,g-at);}else if(k==="games"){n=Math.min(n,g);at=Math.min(at,Math.max(0,g-n));}S.data.games=g;S.data.normalGames=n;S.data.atGames=at;}
 function settings(){let h=DISPLAY.map(([k,l,f])=>`<label class="setrow"><span>${l}</span><input type="checkbox" data-v="${k}" ${S.visible[k]?"checked":""} ${f?"disabled":""}></label>`).join("");$("settingList").innerHTML=h;$("settingList").querySelectorAll("[data-v]").forEach(c=>c.onchange=()=>{let k=c.dataset.v;S.visible[k]=c.checked;if(!c.checked)S.judgeUse[k]=false;save();render()});let opts=[50,100,150,200,250,300,500,1000].map(n=>`<option value="${n}">${n}</option>`).join("");$("plusStep").innerHTML=opts;$("minusStep").innerHTML=opts;$("plusStep").value=S.step.plus;$("minusStep").value=S.step.minus;let old=document.getElementById("rareNoteBox");if(old)old.remove();let box=document.createElement("div");box.id="rareNoteBox";box.className="list helpBox";box.innerHTML=`<p class="holdHelp"><strong>※各カウンターは長押しすると直接数値を入力できます。</strong></p><div class="helpTitle">【レア小役について】</div><p>AT直撃率を正確に算出するために使用します。</p><p>入力しない場合は、通常ゲーム数と公表確率から推定直撃率を表示します。</p>`;$("settingList").insertAdjacentElement("beforebegin",box)}
 function judge(){$("impactToggle").checked=!!S.showImpact;bars();signals();jitems()}
+const IMPORTANCE={
+ atHit:1.00,fiveCoin:1.50,immediateYushutsu:1.50,direct:1.50,medal:1.00,trophy:1.00,
+ chargeVoice:0.75,chargeItem:1.25,rival:0.50,atSignals:0.75,endingVoice:1.25
+};
+const MAX_ACCURACY_GAMES=15000;
+const ITEM_CAP=Math.log(6);
+function gameAccuracy(){let g=Math.max(0,S.data.games||0);return Math.sqrt(Math.min(g,MAX_ACCURACY_GAMES)/MAX_ACCURACY_GAMES)}
+function itemWeight(k){return (IMPORTANCE[k]??1)*gameAccuracy()}
 function probs(){
  const allow=allowed();
  let log=Object.fromEntries(SETS.map(s=>[s,allow.includes(s)?0:-1e9]));
- if(S.visible.atHit&&S.judgeUse.atHit)bayesBinomDenom(log,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,atHitWeight()/100);
- if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)bayesBinomDenom(log,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,fiveCoinWeight()/100);
- if(S.visible.immediateYushutsu&&S.judgeUse.immediateYushutsu)applyImmediate(log);
- if(S.visible.direct&&S.judgeUse.direct)applyDirect(log);
- if(S.visible.medal&&S.judgeUse.medal)applyMedal(log);
- if(S.visible.trophy&&S.judgeUse.trophy)applyTrophy(log);
- if(S.visible.chargeVoice&&S.judgeUse.chargeVoice)applyChargeVoice(log);
- if(S.visible.chargeItem&&S.judgeUse.chargeItem)applyChargeItem(log);
- if(S.visible.rival&&S.judgeUse.rival)applyRival(log);
- if(S.visible.atSignals&&S.judgeUse.atSignals)applyRoundSignals(log);
- if(S.visible.endingVoice&&S.judgeUse.endingVoice)applyEnding(log);
+ if(S.visible.atHit&&S.judgeUse.atHit)applyItem(log,"atHit",x=>bayesBinomDenom(x,S.data.atHit||0,S.data.normalGames||0,PUB.atHit.values,1));
+ if(S.visible.fiveCoin&&S.judgeUse.fiveCoin)applyItem(log,"fiveCoin",x=>bayesBinomDenom(x,S.data.fiveCoin||0,S.data[S.fiveCoinBase]||0,PUB.fiveCoin.values,1));
+ if(S.visible.immediateYushutsu&&S.judgeUse.immediateYushutsu)applyItem(log,"immediateYushutsu",applyImmediate);
+ if(S.visible.direct&&S.judgeUse.direct)applyItem(log,"direct",applyDirect);
+ if(S.visible.medal&&S.judgeUse.medal)applyItem(log,"medal",applyMedal);
+ if(S.visible.trophy&&S.judgeUse.trophy)applyItem(log,"trophy",applyTrophy);
+ if(S.visible.chargeVoice&&S.judgeUse.chargeVoice)applyItem(log,"chargeVoice",applyChargeVoice);
+ if(S.visible.chargeItem&&S.judgeUse.chargeItem)applyItem(log,"chargeItem",applyChargeItem);
+ if(S.visible.rival&&S.judgeUse.rival)applyItem(log,"rival",applyRival);
+ if(S.visible.atSignals&&S.judgeUse.atSignals)applyItem(log,"atSignals",applyRoundSignals);
+ if(S.visible.endingVoice&&S.judgeUse.endingVoice)applyItem(log,"endingVoice",applyEnding);
  let raw=softmax(log);return allow.length<SETS.length?round(raw):floorRound(raw,1)
 }
+function applyItem(log,key,fn){
+ let tmp=Object.fromEntries(SETS.map(s=>[s,0]));
+ fn(tmp);
+ let vals=SETS.map(s=>tmp[s]||0),mean=vals.reduce((a,b)=>a+b,0)/vals.length;
+ let centered=Object.fromEntries(SETS.map(s=>[s,(tmp[s]||0)-mean]));
+ let max=Math.max(...SETS.map(s=>centered[s])),min=Math.min(...SETS.map(s=>centered[s])),spread=max-min;
+ if(spread<=0)return;
+ if(spread>ITEM_CAP){let scale=ITEM_CAP/spread;for(const s of SETS)centered[s]*=scale}
+ let w=itemWeight(key);for(const s of SETS)addLog(log,s,centered[s]*w)
+}
 function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
-function atHitWeight(){let g=S.data.normalGames||0;return clamp(10+(g/6000)*70,10,80)}
-function fiveCoinWeight(){let g=S.data[S.fiveCoinBase]||0;return clamp(20+(g/1500)*60,20,80)}
-function weightByCount(c,vals){if(c<=0)return vals[0];if(c===1)return vals[1];if(c===2)return vals[2];return vals[3]??vals[2]}
 function softmax(log){let max=Math.max(...SETS.map(s=>log[s]));let ex=Object.fromEntries(SETS.map(s=>[s,Math.exp(log[s]-max)]));let sum=Object.values(ex).reduce((a,b)=>a+b,0)||1;return Object.fromEntries(SETS.map(s=>[s,ex[s]/sum*100]))}
 function addLog(log,s,val){if(Number.isFinite(val))log[s]+=val}
 function addWeightedLL(log,llBySet,w,capSpread=0){
@@ -107,85 +122,75 @@ function addWeightedLL(log,llBySet,w,capSpread=0){
  if(capSpread>0){
   let max=Math.max(...SETS.map(s=>contrib[s])),min=Math.min(...SETS.map(s=>contrib[s]));
   let spread=max-min;
-  if(spread>capSpread){
-   let scale=capSpread/spread;
-   for(const s of SETS)contrib[s]*=scale;
-  }
+  if(spread>capSpread){let scale=capSpread/spread;for(const s of SETS)contrib[s]*=scale}
  }
  for(const s of SETS)addLog(log,s,contrib[s]);
 }
-// v18: 各項目は「回数分の連続更新」ではなく、実測値を1つの判別材料として1回だけ評価する。
-function bayesBinom(log,c,n,probBySet,w,capSpread=Math.log(6)){
+// 各項目は実測値を1つの材料として評価し、項目単位の共通上限・重要度・総ゲーム数精度を後から適用する。
+function bayesBinom(log,c,n,probBySet,w,capSpread=ITEM_CAP){
  if(!n||w<=0)return;
  const obs=Math.max(0,Math.min(1,c/n));
  const ps=SETS.map(s=>Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0)));
  const avg=ps.reduce((a,b)=>a+b,0)/ps.length;
  const spread=Math.max(...ps)-Math.min(...ps);
- // サンプル数による確信は少しだけ使うが、項目の重要度が主役。5枚役などの暴れを抑える。
  const se=Math.sqrt(Math.max(avg*(1-avg),1e-6)/Math.max(n,1));
  const sigma=Math.max(spread*0.75,se*2.0,0.002);
  let ll={};
  for(const s of SETS){let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));let z=(obs-p)/sigma;ll[s]=-0.5*z*z}
  addWeightedLL(log,ll,w,capSpread);
 }
-function bayesBinomDenom(log,c,n,denomBySet,w,capSpread=Math.log(6)){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w,capSpread)}
-function bayesMult(log,counts,probRows,w,capSpread=Math.log(6)){
+function bayesBinomDenom(log,c,n,denomBySet,w,capSpread=ITEM_CAP){let probs={};for(const s of SETS)probs[s]=1/denomBySet[s];bayesBinom(log,c,n,probs,w,capSpread)}
+function bayesMult(log,counts,probRows,w,capSpread=ITEM_CAP){
  if(w<=0)return;
  const total=Object.values(counts).reduce((a,b)=>a+(b||0),0);
  if(!total)return;
- // 出現分布を1つの材料として評価。回数で尤度を掛け続けない。
  let ll={};
  for(const s of SETS){
   ll[s]=0;
   for(const [key,probBySet] of probRows){
-   let share=(counts[key]||0)/total;
-   if(!share)continue;
-   let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));
-   ll[s]+=share*Math.log(p);
+   let share=(counts[key]||0)/total;if(!share)continue;
+   let p=Math.max(1e-6,Math.min(1-1e-6,probBySet[s]??0));ll[s]+=share*Math.log(p);
   }
  }
  addWeightedLL(log,ll,w,capSpread);
 }
 function pctMap(o){let m={};for(const [s,v] of Object.entries(o))m[s]=v/100;return m}
-const RARE_CAP=Math.log(3); // レア事象系は1項目だけで振り切れすぎないよう更新幅を抑える
-function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(!n)return;let w=weightByCount(c,{0:5,1:50,2:80,3:90})/100;bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),w,RARE_CAP)}
+function applyImmediate(log){let c=S.data.immediateYushutsu||0,n=S.data.atHit||0;if(n)bayesBinom(log,c,n,pctMap(PUB.immediateYushutsu.values),1)}
 function applyDirect(log){
  const pairs=[
-  ['directBoat','boat',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1}),'weak'],
-  ['directWeakCherry','weakCherry',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1}),'weak'],
-  ['directWeakChance','weakChance',pctMap({1:0.0001,2:0.0001,4:0.8,5:2.0,6:3.1}),'weak'],
-  ['directStrongCherry','strongCherry',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong'],
-  ['directStrongChance','strongChance',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3}),'strong']
+  ['directBoat','boat',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1})],
+  ['directWeakCherry','weakCherry',pctMap({1:0.0001,2:0.0001,4:0.4,5:2.0,6:3.1})],
+  ['directWeakChance','weakChance',pctMap({1:0.0001,2:0.0001,4:0.8,5:2.0,6:3.1})],
+  ['directStrongCherry','strongCherry',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3})],
+  ['directStrongChance','strongChance',pctMap({1:0.4,2:1.2,4:2.0,5:3.9,6:6.3})]
  ];
- for(const [dk,rk,prob,type] of pairs){let c=S.data[dk]||0;let n=S.data[rk]||estimatedRare(rk);if(!n)continue;let w=(type==='weak'?weightByCount(c,{0:5,1:80,2:95,3:95}):weightByCount(c,{0:5,1:40,2:65,3:80}))/100;bayesBinom(log,c,n,prob,w,RARE_CAP)}
+ for(const [dk,rk,prob] of pairs){let c=S.data[dk]||0,n=S.data[rk]||estimatedRare(rk);if(n)bayesBinom(log,c,n,prob,1)}
 }
-function applyMedal(log){let c=S.data.medalBlack||0,n=S.data.atHit||0;if(n){let w=weightByCount(c,{0:5,1:20,2:40,3:40})/100;bayesBinom(log,c,n,pctMap({1:1.25,2:1.5,4:4.0,5:4.5,6:4.5}),w,RARE_CAP)}
- // 青・黄は通常出現率が不明なため、通常判別には入れない。
-}
+function applyMedal(log){let c=S.data.medalBlack||0,n=S.data.atHit||0;if(n)bayesBinom(log,c,n,pctMap({1:1.25,2:1.5,4:4.0,5:4.5,6:4.5}),1)}
 function applyTrophy(log){let counts={bronze:S.data.trophyBronze||0,gold:S.data.trophyGold||0,kerot:S.data.trophyKerot||0,rainbow:S.data.trophyRainbow||0};let rows=[
  ['bronze',pctMap({1:0.0001,2:5.0,4:3.4,5:3.4,6:3.5})],
  ['gold',pctMap({1:0.0001,2:0.0001,4:4.4,5:3.6,6:3.9})],
  ['kerot',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.1,6:1.6})]
-];bayesMult(log,counts,rows,0.6,RARE_CAP)}
-function applyChargeVoice(log){let a=S.data.voiceCalm||0,b=S.data.voiceSign||0;if(a+b){bayesMult(log,{calm:a,sign:b},[
+];bayesMult(log,counts,rows,1)}
+function applyChargeVoice(log){let a=S.data.voiceCalm||0,b=S.data.voiceSign||0;if(a+b)bayesMult(log,{calm:a,sign:b},[
  ['calm',pctMap({1:50,2:40,4:40,5:70,6:40})],['sign',pctMap({1:50,2:60,4:60,5:30,6:60})]
-],0.4,RARE_CAP)}}
+],1)}
 function applyChargeItem(log){
  const defs=[
-  ['chargeBoat','boat',pctMap({1:25.0,2:26.2,4:32.8,5:39.1,6:43.0}),0.50],
-  ['chargeWeakCherry','weakCherry',pctMap({1:31.3,2:32.0,4:37.5,5:40.6,6:46.9}),0.50],
-  ['chargeWeakChance','weakChance',pctMap({1:50.0,2:50.8,4:58.6,5:62.5,6:66.4}),0.50],
-  ['chargeStrongCherry','strongCherry',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40],
-  ['chargeStrongChance','strongChance',pctMap({1:100,2:100,4:100,5:100,6:100}),0.40]
+  ['chargeBoat','boat',pctMap({1:25.0,2:26.2,4:32.8,5:39.1,6:43.0})],
+  ['chargeWeakCherry','weakCherry',pctMap({1:31.3,2:32.0,4:37.5,5:40.6,6:46.9})],
+  ['chargeWeakChance','weakChance',pctMap({1:50.0,2:50.8,4:58.6,5:62.5,6:66.4})],
+  ['chargeStrongCherry','strongCherry',pctMap({1:100,2:100,4:100,5:100,6:100})],
+  ['chargeStrongChance','strongChance',pctMap({1:100,2:100,4:100,5:100,6:100})]
  ];
- for(const [base,rare,prob,w] of defs){let c=S.data[base+'Item']||0,n=S.data[rare]||S.data[base+'Hit']||0;if(!n)continue;bayesBinom(log,c,n,prob,w,RARE_CAP)}
+ for(const [base,rare,prob] of defs){let c=S.data[base+'Item']||0,n=S.data[rare]||S.data[base+'Hit']||0;if(n)bayesBinom(log,c,n,prob,1)}
 }
 function applyRival(log){let n=S.data.atHit||0;if(!n)return;let rows=[
  ['rivalEnoki',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})],
  ['rivalGamo',pctMap({1:7.8,2:8.6,4:10.9,5:14.1,6:15.6})],
  ['rivalHamaoka',pctMap({1:7.8,2:8.2,4:9.4,5:10.5,6:10.9})]
-];for(const [key,prob] of rows)bayesBinom(log,S.data[key]||0,n,prob,0.20,RARE_CAP)}
-function applyRoundSignals(log){let n=Math.max(1,S.data.atHit||0);bayesBinom(log,S.data.roundDress||0,n,pctMap({1:20.0,2:25.0,4:35.0,5:39.0,6:39.0}),0.30,RARE_CAP);bayesBinom(log,S.data.roundAoshimaHatano||0,n,pctMap({1:0.0001,2:0.0001,4:0.0001,5:5.2,6:4.5}),0.30,RARE_CAP)}
+];for(const [key,prob] of rows)bayesBinom(log,S.data[key]||0,n,prob,1)}
+function applyRoundSignals(log){let n=Math.max(1,S.data.atHit||0);bayesBinom(log,S.data.roundDress||0,n,pctMap({1:20.0,2:25.0,4:35.0,5:39.0,6:39.0}),1);bayesBinom(log,S.data.roundAoshimaHatano||0,n,pctMap({1:0.0001,2:0.0001,4:0.0001,5:5.2,6:4.5}),1)}
 function applyEnding(log){let total=endingTotal();if(!total)return;let rows=[
  ['endIkuyo',pctMap({1:10,2:15,4:15,5:10,6:15})],
  ['endIiKanji',pctMap({1:10,2:10,4:15,5:15,6:15})],
@@ -193,12 +198,42 @@ function applyEnding(log){let total=endingTotal();if(!total)return;let rows=[
  ['endOtsukare',pctMap({1:0.0001,2:2.5,4:2.5,5:0.0001,6:1.25})],
  ['endTeio',pctMap({1:0.0001,2:0.0001,4:2.5,5:2.5,6:1.25})],
  ['endKitakita',pctMap({1:0.0001,2:0.0001,4:0.0001,5:2.5,6:1.25})]
-];bayesMult(log,Object.fromEntries(GDEF.endingVoice.children.map(([k])=>[k,S.data[k]||0])),rows,0.40,RARE_CAP)}
+];bayesMult(log,Object.fromEntries(GDEF.endingVoice.children.map(([k])=>[k,S.data[k]||0])),rows,1)}
 function allowed(){let a=[...SETS];const ge=n=>a=a.filter(s=>s>=n),only=n=>a=a.filter(s=>s===n),even=()=>a=a.filter(s=>s===2||s===4||s===6);if(S.data.trophyBronze)ge(2);if(S.data.trophyGold||S.data.ticketGold||S.data.voiceTeio||S.data.endTeio||S.data.over456||S.data.directBoat||S.data.directWeakCherry||S.data.directWeakChance)ge(4);if(S.data.trophyKerot||S.data.over803||S.data.roundBoatKerot||S.data.roundAoshimaHatano||S.data.endKitakita)ge(5);if(S.data.trophyRainbow||S.data.ticketRainbow||S.data.over666||S.data.endOmedeto)only(6);if(S.data.ticketSilver||S.data.voiceOtsukare||S.data.endOtsukare)even();return a.length?a:SETS}
 function floorRound(raw,floorPct){const keys=Object.keys(raw);let out={},fixed=0,flex=[];for(const k of keys){if(raw[k]<=0)out[k]=0;else{out[k]=floorPct;fixed+=floorPct;flex.push(k)}}const remain=Math.max(0,100-fixed),rawSum=flex.reduce((a,k)=>a+raw[k],0)||1;flex.forEach(k=>out[k]+=raw[k]/rawSum*remain);let rounded=round(out),need=0;for(const k of flex){if(rounded[k]<floorPct){need+=floorPct-rounded[k];rounded[k]=floorPct}}while(need>0){let c=flex.filter(k=>rounded[k]>floorPct);if(!c.length)break;let m=c.sort((a,b)=>rounded[b]-rounded[a])[0];rounded[m]-=1;need--}return rounded}
 function round(raw){let e=Object.entries(raw).map(([k,v])=>({k,f:Math.floor(v),r:v-Math.floor(v)}));let s=e.reduce((a,x)=>a+x.f,0);e.sort((a,b)=>b.r-a.r);for(let i=0;s<100&&i<e.length;i++,s++)e[i].f++;e.sort((a,b)=>+a.k-+b.k);return Object.fromEntries(e.map(x=>[x.k,x.f]))}
 function bars(){let p=probs(),v=Object.values(p),mx=Math.max(...v),mn=Math.min(...v);$("bars").innerHTML=Object.entries(p).map(([s,x])=>`<div class="bar"><div>設定${s}</div><div class="track"><div class="fill ${x===mx?"max":x===mn?"min":""}" style="width:${Math.max(1,x)}%"></div></div><div>${x}%</div></div>`).join("")}
-function signals(){let l=[];if(S.data.trophyRainbow)l.push("トロフィー 虹（設定6確定）");if(S.data.ticketRainbow)l.push("舟券 虹（設定6確定）");if(S.data.over666)l.push("666枚OVER（設定6確定）");if(S.data.endOmedeto)l.push("澄『おめでとう！』（設定6確定）");if(S.data.trophyKerot)l.push("トロフィー ケロット柄（設定5以上）");if(S.data.over803)l.push("803枚OVER（設定5以上）");if(S.data.roundBoatKerot)l.push("ボートケロット（設定5以上）");if(S.data.roundAoshimaHatano)l.push("青島＆波多野（設定5以上）");if(S.data.endKitakita)l.push("青島『きたきたきたぁー！』（設定5以上）");if(S.data.trophyGold)l.push("トロフィー 金（設定4以上）");if(S.data.ticketGold)l.push("舟券 金（設定4以上）");if(S.data.voiceTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.endTeio)l.push("榎木『これが艇王と…』（設定4以上）");if(S.data.over456)l.push("456枚OVER（設定4以上）");if(S.data.trophyBronze)l.push("トロフィー 銅（設定2以上）");if(S.data.ticketSilver)l.push("舟券 銀（偶数濃厚）");if(S.data.voiceOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");if(S.data.endOtsukare)l.push("榎木『おつかれ』（偶数濃厚）");$("signals").classList.toggle("on",l.length>0);$("signals").innerHTML=l.length?`<div class="blockTitle">確定・否定</div>${l.map(x=>`<div class="signal">${x}</div>`).join("")}`:""}
+function signals(){
+ let l=[];
+ const add=(condition,label,cls)=>{if(condition)l.push({label,cls})};
+ add(S.data.ticketSilver,"舟券（偶数濃厚）","even");
+ add(S.data.voiceOtsukare,"激走チャージ後セリフ（偶数濃厚）","even");
+ add(S.data.endOtsukare,"エンディング中サブ液晶（偶数濃厚）","even");
+
+ add(S.data.trophyGold,"トロフィー（設定4以上）","over4");
+ add(S.data.ticketGold,"舟券（設定4以上）","over4");
+ add(S.data.voiceTeio,"激走チャージ後セリフ（設定4以上）","over4");
+ add(S.data.endTeio,"エンディング中サブ液晶（設定4以上）","over4");
+ add(S.data.over456,"AT中示唆（設定4以上）","over4");
+ add(S.data.directBoat,"AT直撃（設定4以上）","over4");
+ add(S.data.directWeakCherry,"AT直撃（設定4以上）","over4");
+ add(S.data.directWeakChance,"AT直撃（設定4以上）","over4");
+
+ add(S.data.trophyKerot,"トロフィー（設定5以上）","over5");
+ add(S.data.over803,"AT中示唆（設定5以上）","over5");
+ add(S.data.roundBoatKerot,"AT中示唆（設定5以上）","over5");
+ add(S.data.roundAoshimaHatano,"AT中示唆（設定5以上）","over5");
+ add(S.data.endKitakita,"エンディング中サブ液晶（設定5以上）","over5");
+
+ add(S.data.trophyRainbow,"トロフィー（設定6）","set6");
+ add(S.data.ticketRainbow,"舟券（設定6）","set6");
+ add(S.data.over666,"AT中示唆（設定6）","set6");
+ add(S.data.endOmedeto,"エンディング中サブ液晶（設定6）","set6");
+
+ add(S.data.trophyBronze,"トロフィー（設定2以上）","other");
+ $("signals").classList.toggle("on",l.length>0);
+ $("signals").innerHTML=l.length?`<div class="blockTitle">確定・濃厚演出</div>${l.map(x=>`<div class="signal signal-${x.cls}">${x.label}</div>`).join("")}`:"";
+}
 function jitems(){let keys=DISPLAY.map(([k])=>k).filter(k=>S.visible[k]&&! ["games","normalGames","atGames","rare"].includes(k));$("judgeItems").innerHTML=keys.map(jitem).join("");$("judgeItems").querySelectorAll("[data-use]").forEach(c=>c.onchange=()=>{S.judgeUse[c.dataset.use]=c.checked;save();render()});$("judgeItems").querySelectorAll("input[name^='fiveBase_']").forEach(r=>r.onchange=()=>{S.fiveCoinBase=r.value;save();render()});$("judgeItems").querySelectorAll("[data-open]").forEach(el=>el.onclick=e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="LABEL")return;el.parentElement.classList.toggle("open")})}
 function jitem(k){let checked=S.judgeUse[k]?"checked":"",title,main="-",near="",pub="";
  if(k==="atHit"||k==="fiveCoin"){
@@ -320,7 +355,7 @@ function directPct(directKey,rareKey){let cnt=S.data[directKey]||0,base=S.data[r
 function flatChildren(d){return d.sections?d.sections.flatMap(s=>s.children):d.children}
 function nearest(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
 function nearestPct(r,vals){let b=null,d=1e9;for(const [s,v] of Object.entries(vals)){let x=Math.abs(r-v);if(x<d){d=x;b=s}}return b?`設定${b}近似値`:"-"}
-function impactStars(k){let n={atHit:4,fiveCoin:4,immediateYushutsu:4,direct:4,chargeVoice:3,atSignals:3,endingVoice:3,trophy:4,ticket:5,medal:2,rival:2,chargeItem:4}[k]||1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
+function impactStars(k){let w=IMPORTANCE[k];if(k==="ticket")return "★★★★★";let n=w===1.5?5:w===1.25?4:w===1?3:w===0.75?2:1;return "★★★★★".slice(0,n)+"☆☆☆☆☆".slice(0,5-n)}
 function gtotal(g){let d=GDEF[g];if(d.sections)return d.sections.reduce((a,sec)=>a+sec.children.reduce((b,[k])=>b+(S.data[k]||0),0),0);if(d.paired)return d.children.reduce((a,[k])=>a+(S.data[k+"Hit"]||0)+(S.data[k+"Item"]||0),0);return d.children.reduce((a,[k])=>a+(S.data[k]||0),0)}
 function rate(c,d){return c&&d?`1/${trim(d/c,1)}`:"-"}function pct(c,d){return c&&d?`${trim(c/d*100,1)}%`:"-"}function trim(v,n){return Number(v.toFixed(n)).toString()}
 function reset(){if(!confirm("現在の実戦データをリセットしますか？"))return;let keep={visible:structuredClone(S.visible),judgeUse:structuredClone(S.judgeUse),step:structuredClone(S.step),showImpact:S.showImpact,fiveCoinBase:S.fiveCoinBase};S=structuredClone(DEF);Object.assign(S,keep);save();render()}

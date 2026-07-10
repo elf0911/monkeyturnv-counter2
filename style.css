@@ -229,3 +229,11 @@ input[type=radio]{accent-color:var(--blue)}
 
 /* Hide closed group totals for the low-priority detail-only groups */
 .ghead .gtotal:empty{display:none;}
+
+/* 判別画面：確定・濃厚演出の色分け */
+.signal{font-weight:800;line-height:1.8}
+.signal-even{color:var(--blue)}
+.signal-over4{color:var(--green)}
+.signal-over5{color:#af52de}
+.signal-set6{color:var(--red)}
+.signal-other{color:var(--text)}
